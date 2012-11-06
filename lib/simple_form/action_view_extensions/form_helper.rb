@@ -44,7 +44,6 @@ module SimpleForm
       def with_simple_form_field_error_proc
         default_field_error_proc = ::ActionView::Base.field_error_proc
         begin
-          ::ActionView::Base.field_error_proc = FIELD_ERROR_PROC
           yield
         ensure
           ::ActionView::Base.field_error_proc = default_field_error_proc
