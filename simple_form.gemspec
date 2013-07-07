@@ -11,6 +11,7 @@ Gem::Specification.new do |s|
   s.homepage    = "https://github.com/plataformatec/simple_form"
   s.description = "Forms made easy!"
   s.authors     = ['José Valim', 'Carlos Antônio', 'Rafael França']
+  s.license     = "MIT"
 
   s.files         = Dir["CHANGELOG.md", "MIT-LICENSE", "README.md", "lib/**/*"]
   s.test_files    = Dir["test/**/*.rb"]
@@ -19,6 +20,6 @@ Gem::Specification.new do |s|
 
   s.rubyforge_project = "simple_form"
 
-  s.add_dependency('activemodel', '~> 3.0')
-  s.add_dependency('actionpack', '~> 3.0')
+  s.add_dependency('activemodel', '>= 4.0.0', '< 4.1')
+  s.add_dependency('actionpack', '>= 4.0.0', '< 4.1')
 end

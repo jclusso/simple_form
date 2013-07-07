@@ -1,16 +1,12 @@
-require 'rubygems'
 require 'bundler/setup'
 
-require 'test/unit'
-require 'mocha'
+require 'minitest/autorun'
 
 require 'active_model'
 require 'action_controller'
 require 'action_view'
 require 'action_view/template'
 
-# Rails 3.0.4 is missing this "deprecation" require.
-require 'active_support/core_ext/module/deprecation'
 require 'action_view/test_case'
 
 module Rails
@@ -39,40 +35,27 @@ class ActionView::TestCase
   include SimpleForm::ActionViewExtensions::FormHelper
 
   setup :set_controller
-  setup :setup_new_user
+  setup :setup_users
 
   def set_controller
     @controller = MockController.new
   end
 
-  def setup_new_user(options={})
-    @user = User.new({
-      :id => 1,
-      :name => 'New in SimpleForm!',
-      :description => 'Hello!',
-      :created_at => Time.now
-    }.merge(options))
+  def setup_users(extra_attributes = {})
+    @user = User.build(extra_attributes)
 
-    @validating_user = ValidatingUser.new({
-      :id => 1,
-      :name => 'New in SimpleForm!',
-      :description => 'Hello!',
-      :home_picture => 'Home picture',
-      :created_at => Time.now,
-      :age => 19,
-      :amount => 15,
-      :attempts => 1,
-      :company => [1]
-    }.merge(options))
+    @validating_user = ValidatingUser.build({
+      home_picture: 'Home picture',
+      age: 19,
+      amount: 15,
+      attempts: 1,
+      company: [1]
+    }.merge!(extra_attributes))
 
-    @other_validating_user = OtherValidatingUser.new({
-      :id => 1,
-      :name => 'New in SimpleForm!',
-      :description => 'Hello!',
-      :created_at => Time.now,
-      :age => 19,
-      :company => 1
-    }.merge(options))
+    @other_validating_user = OtherValidatingUser.build({
+      age: 19,
+      company: 1
+    }.merge!(extra_attributes))
   end
 
   def protect_against_forgery?
@@ -82,6 +65,11 @@ class ActionView::TestCase
   def user_path(*args)
     '/users'
   end
+
+  def company_user_path(*args)
+    '/company/users'
+  end
+
   alias :users_path :user_path
   alias :super_user_path :user_path
   alias :validating_user_path :user_path

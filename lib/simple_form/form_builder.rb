@@ -1,4 +1,6 @@
-require 'simple_form/core_ext/hash'
+require 'active_support/core_ext/object/deep_dup'
+require 'simple_form/map_type'
+require 'simple_form/tags'
 
 module SimpleForm
   class FormBuilder < ActionView::Helpers::FormBuilder
@@ -6,26 +8,28 @@ module SimpleForm
 
     # When action is create or update, we still should use new and edit
     ACTIONS = {
-      :create => :new,
-      :update => :edit
+      create: :new,
+      update: :edit
     }
+
+    ATTRIBUTE_COMPONENTS = [:html5, :min_max, :maxlength, :placeholder, :pattern, :readonly]
 
     extend MapType
     include SimpleForm::Inputs
 
-    map_type :text,                                :to => SimpleForm::Inputs::TextInput
-    map_type :file,                                :to => SimpleForm::Inputs::FileInput
-    map_type :string, :email, :search, :tel, :url, :to => SimpleForm::Inputs::StringInput
-    map_type :password,                            :to => SimpleForm::Inputs::PasswordInput
-    map_type :integer, :decimal, :float,           :to => SimpleForm::Inputs::NumericInput
-    map_type :range,                               :to => SimpleForm::Inputs::RangeInput
-    map_type :check_boxes,                         :to => SimpleForm::Inputs::CollectionCheckBoxesInput
-    map_type :radio_buttons,                       :to => SimpleForm::Inputs::CollectionRadioButtonsInput
-    map_type :select,                              :to => SimpleForm::Inputs::CollectionSelectInput
-    map_type :grouped_select,                      :to => SimpleForm::Inputs::GroupedCollectionSelectInput
-    map_type :date, :time, :datetime,              :to => SimpleForm::Inputs::DateTimeInput
-    map_type :country, :time_zone,                 :to => SimpleForm::Inputs::PriorityInput
-    map_type :boolean,                             :to => SimpleForm::Inputs::BooleanInput
+    map_type :text,                                to: SimpleForm::Inputs::TextInput
+    map_type :file,                                to: SimpleForm::Inputs::FileInput
+    map_type :string, :email, :search, :tel, :url, to: SimpleForm::Inputs::StringInput
+    map_type :password,                            to: SimpleForm::Inputs::PasswordInput
+    map_type :integer, :decimal, :float,           to: SimpleForm::Inputs::NumericInput
+    map_type :range,                               to: SimpleForm::Inputs::RangeInput
+    map_type :check_boxes,                         to: SimpleForm::Inputs::CollectionCheckBoxesInput
+    map_type :radio_buttons,                       to: SimpleForm::Inputs::CollectionRadioButtonsInput
+    map_type :select,                              to: SimpleForm::Inputs::CollectionSelectInput
+    map_type :grouped_select,                      to: SimpleForm::Inputs::GroupedCollectionSelectInput
+    map_type :date, :time, :datetime,              to: SimpleForm::Inputs::DateTimeInput
+    map_type :country, :time_zone,                 to: SimpleForm::Inputs::PriorityInput
+    map_type :boolean,                             to: SimpleForm::Inputs::BooleanInput
 
     def self.discovery_cache
       @discovery_cache ||= {}
@@ -47,7 +51,7 @@ module SimpleForm
     #
     #   # Imagine @user has error "can't be blank" on name
     #   simple_form_for @user do |f|
-    #     f.input :name, :hint => 'My hint'
+    #     f.input :name, hint: 'My hint'
     #   end
     #
     # This is the output html (only the input portion, not the form):
@@ -56,7 +60,7 @@ module SimpleForm
     #       <abbr title="required">*</abbr> Super User Name!
     #     </label>
     #     <input class="string required" id="user_name" maxlength="100"
-    #        name="user[name]" size="100" type="text" value="Carlos" />
+    #        name="user[name]" type="text" value="Carlos" />
     #     <span class="hint">My hint</span>
     #     <span class="error">can't be blank</span>
     #
@@ -65,15 +69,15 @@ module SimpleForm
     #
     # You have some options for the input to enable/disable some functions:
     #
-    #   :as => allows you to define the input type you want, for instance you
+    #   as: allows you to define the input type you want, for instance you
     #          can use it to generate a text field for a date column.
     #
-    #   :required => defines whether this attribute is required or not. True
+    #   required: defines whether this attribute is required or not. True
     #               by default.
     #
     # The fact SimpleForm is built in components allow the interface to be unified.
     # So, for instance, if you need to disable :hint for a given input, you can pass
-    # :hint => false. The same works for :error, :label and :wrapper.
+    # hint: false. The same works for :error, :label and :wrapper.
     #
     # Besides the html for any component can be changed. So, if you want to change
     # the label html you just need to give a hash to :label_html. To configure the
@@ -84,18 +88,18 @@ module SimpleForm
     # Some inputs, as datetime, time and select allow you to give extra options, like
     # prompt and/or include blank. Such options are given in plainly:
     #
-    #    f.input :created_at, :include_blank => true
+    #    f.input :created_at, include_blank: true
     #
     # == Collection
     #
     # When playing with collections (:radio_buttons, :check_boxes and :select
     # inputs), you have three extra options:
     #
-    #   :collection => use to determine the collection to generate the radio or select
+    #   collection: use to determine the collection to generate the radio or select
     #
-    #   :label_method => the method to apply on the array collection to get the label
+    #   label_method: the method to apply on the array collection to get the label
     #
-    #   :value_method => the method to apply on the array collection to get the value
+    #   value_method: the method to apply on the array collection to get the value
     #
     # == Priority
     #
@@ -129,12 +133,14 @@ module SimpleForm
     # This is the output html (only the input portion, not the form):
     #
     #     <input class="string required" id="user_name" maxlength="100"
-    #        name="user[name]" size="100" type="text" value="Carlos" />
+    #        name="user[name]" type="text" value="Carlos" />
     #
     def input_field(attribute_name, options={})
       options = options.dup
-      options[:input_html] = options.except(:as, :collection, :label_method, :value_method)
-      SimpleForm::Wrappers::Root.new([:input], :wrapper => false).render find_input(attribute_name, options)
+      options[:input_html] = options.except(:as, :collection, :label_method, :value_method, *ATTRIBUTE_COMPONENTS)
+      options = @defaults.deep_dup.deep_merge(options) if @defaults
+
+      SimpleForm::Wrappers::Root.new(ATTRIBUTE_COMPONENTS + [:input], wrapper: false).render find_input(attribute_name, options)
     end
 
     # Helper for dealing with association selects/radios, generating the
@@ -148,7 +154,7 @@ module SimpleForm
     #     f.association :company          # Company.all
     #   end
     #
-    #   f.association :company, :collection => Company.all(:order => 'name')
+    #   f.association :company, collection: Company.all(order: 'name')
     #   # Same as using :order option, but overriding collection
     #
     # == Block
@@ -163,6 +169,8 @@ module SimpleForm
     #
     # From the options above, only :collection can also be supplied.
     #
+    # Please note that the association helper is currently only tested with Active Record. Depending on the ORM you are using your mileage may vary.
+    #
     def association(association, options={}, &block)
       options = options.dup
 
@@ -176,7 +184,9 @@ module SimpleForm
 
       options[:as] ||= :select
       options[:collection] ||= options.fetch(:collection) {
-        reflection.klass.all(reflection.options.slice(:conditions, :order))
+        conditions = reflection.options[:conditions]
+        conditions = conditions.call if conditions.respond_to?(:call)
+        reflection.klass.where(conditions).order(reflection.options[:order])
       }
 
       attribute = case reflection.macro
@@ -187,7 +197,6 @@ module SimpleForm
         else
           if options[:as] == :select
             html_options = options[:input_html] ||= {}
-            html_options[:size]   ||= 5
             html_options[:multiple] = true unless html_options.key?(:multiple)
           end
 
@@ -200,7 +209,7 @@ module SimpleForm
           :"#{reflection.name.to_s.singularize}_ids"
       end
 
-      input(attribute, options.merge(:reflection => reflection))
+      input(attribute, options.merge(reflection: reflection))
     end
 
     # Creates a button:
@@ -213,8 +222,7 @@ module SimpleForm
     # button implementation (3.2 forward (to delegate to the original when
     # calling `f.button :button`.
     #
-    # TODO: remove if condition when supporting only Rails 3.2 forward.
-    alias_method :button_button, :button if method_defined?(:button)
+    alias_method :button_button, :button
     def button(type, *args, &block)
       options = args.extract_options!.dup
       options[:class] = [SimpleForm.button_class, options[:class]].compact
@@ -232,7 +240,7 @@ module SimpleForm
     # == Examples
     #
     #    f.error :name
-    #    f.error :name, :id => "cool_error"
+    #    f.error :name, id: "cool_error"
     #
     def error(attribute_name, options={})
       options = options.dup
@@ -270,7 +278,7 @@ module SimpleForm
     # == Examples
     #
     #    f.hint :name # Do I18n lookup
-    #    f.hint :name, :id => "cool_hint"
+    #    f.hint :name, id: "cool_hint"
     #    f.hint "Don't forget to accept this"
     #
     def hint(attribute_name, options={})
@@ -297,10 +305,10 @@ module SimpleForm
     #
     #    f.label :name                     # Do I18n lookup
     #    f.label :name, "Name"             # Same behavior as Rails, do not add required tag
-    #    f.label :name, :label => "Name"   # Same as above, but adds required tag
+    #    f.label :name, label: "Name"   # Same as above, but adds required tag
     #
-    #    f.label :name, :required => false
-    #    f.label :name, :id => "cool_label"
+    #    f.label :name, required: false
+    #    f.label :name, id: "cool_label"
     #
     def label(attribute_name, *args)
       return super if args.first.is_a?(String) || block_given?
@@ -321,11 +329,116 @@ module SimpleForm
     # == Examples
     #
     #    f.error_notification
-    #    f.error_notification :message => 'Something went wrong'
-    #    f.error_notification :id => 'user_error_message', :class => 'form_error'
+    #    f.error_notification message: 'Something went wrong'
+    #    f.error_notification id: 'user_error_message', class: 'form_error'
     #
     def error_notification(options={})
       SimpleForm::ErrorNotification.new(self, options).render
+    end
+
+    # Create a collection of radio inputs for the attribute. Basically this
+    # helper will create a radio input associated with a label for each
+    # text/value option in the collection, using value_method and text_method
+    # to convert these text/value. You can give a symbol or a proc to both
+    # value_method and text_method, that will be evaluated for each item in
+    # the collection.
+    #
+    # == Examples
+    #
+    #   form_for @user do |f|
+    #     f.collection_radio_buttons :options, [[true, 'Yes'] ,[false, 'No']], :first, :last
+    #   end
+    #
+    #   <input id="user_options_true" name="user[options]" type="radio" value="true" />
+    #   <label class="collection_radio_buttons" for="user_options_true">Yes</label>
+    #   <input id="user_options_false" name="user[options]" type="radio" value="false" />
+    #   <label class="collection_radio_buttons" for="user_options_false">No</label>
+    #
+    # It is also possible to give a block that should generate the radio +
+    # label. To wrap the radio with the label, for instance:
+    #
+    #   form_for @user do |f|
+    #     f.collection_radio_buttons(
+    #       :options, [[true, 'Yes'] ,[false, 'No']], :first, :last
+    #     ) do |b|
+    #       b.label { b.radio_button + b.text }
+    #     end
+    #   end
+    #
+    # == Options
+    #
+    # Collection radio accepts some extra options:
+    #
+    #   * checked  => the value that should be checked initially.
+    #
+    #   * disabled => the value or values that should be disabled. Accepts a single
+    #                 item or an array of items.
+    #
+    #   * collection_wrapper_tag   => the tag to wrap the entire collection.
+    #
+    #   * collection_wrapper_class => the CSS class to use for collection_wrapper_tag
+    #
+    #   * item_wrapper_tag         => the tag to wrap each item in the collection.
+    #
+    #   * item_wrapper_class       => the CSS class to use for item_wrapper_tag
+    #
+    #   * a block                  => to generate the label + radio or any other component.
+    def collection_radio_buttons(method, collection, value_method, text_method, options = {}, html_options = {}, &block)
+      SimpleForm::Tags::CollectionRadioButtons.new(@object_name, method, @template, collection, value_method, text_method, objectify_options(options), @default_options.merge(html_options)).render(&block)
+    end
+
+    # Creates a collection of check boxes for each item in the collection,
+    # associated with a clickable label. Use value_method and text_method to
+    # convert items in the collection for use as text/value in check boxes.
+    # You can give a symbol or a proc to both value_method and text_method,
+    # that will be evaluated for each item in the collection.
+    #
+    # == Examples
+    #
+    #   form_for @user do |f|
+    #     f.collection_check_boxes :options, [[true, 'Yes'] ,[false, 'No']], :first, :last
+    #   end
+    #
+    #   <input name="user[options][]" type="hidden" value="" />
+    #   <input id="user_options_true" name="user[options][]" type="checkbox" value="true" />
+    #   <label class="collection_check_boxes" for="user_options_true">Yes</label>
+    #   <input name="user[options][]" type="hidden" value="" />
+    #   <input id="user_options_false" name="user[options][]" type="checkbox" value="false" />
+    #   <label class="collection_check_boxes" for="user_options_false">No</label>
+    #
+    # It is also possible to give a block that should generate the check box +
+    # label. To wrap the check box with the label, for instance:
+    #
+    #   form_for @user do |f|
+    #     f.collection_check_boxes(
+    #       :options, [[true, 'Yes'] ,[false, 'No']], :first, :last
+    #     ) do |b|
+    #       b.label { b.check_box + b.text }
+    #     end
+    #   end
+    #
+    # == Options
+    #
+    # Collection check box accepts some extra options:
+    #
+    #   * checked  => the value or values that should be checked initially. Accepts
+    #                 a single item or an array of items. It overrides existing associations.
+    #
+    #   * disabled => the value or values that should be disabled. Accepts a single
+    #                 item or an array of items.
+    #
+    #   * collection_wrapper_tag   => the tag to wrap the entire collection.
+    #
+    #   * collection_wrapper_class => the CSS class to use for collection_wrapper_tag. This option
+    #                                 is ignored if the :collection_wrapper_tag option is blank.
+    #
+    #   * item_wrapper_tag         => the tag to wrap each item in the collection.
+    #
+    #   * item_wrapper_class       => the CSS class to use for item_wrapper_tag
+    #
+    #   * a block                  => to generate the label + check box or any other component.
+    def collection_check_boxes(method, collection, value_method, text_method, options = {}, html_options = {}, &block)
+      SimpleForm::Tags::CollectionCheckBoxes.new(@object_name, method, @template, collection, value_method, text_method, objectify_options(options), @default_options.merge(html_options)).render(&block)
     end
 
     # Extract the model names from the object_name mess, ignoring numeric and
@@ -336,10 +449,10 @@ module SimpleForm
     # route[blocks_attributes][0][blocks_learning_object_attributes][1][foo_attributes]
     # ["route", "blocks", "blocks_learning_object", "foo"]
     #
-    def lookup_model_names
+    def lookup_model_names #:nodoc:
       @lookup_model_names ||= begin
         child_index = options[:child_index]
-        names = object_name.to_s.scan(/([a-zA-Z_]+)/).flatten
+        names = object_name.to_s.scan(/(?!\d)\w+/).flatten
         names.delete(child_index) if child_index
         names.each { |name| name.gsub!('_attributes', '') }
         names.freeze
@@ -347,9 +460,9 @@ module SimpleForm
     end
 
     # The action to be used in lookup.
-    def lookup_action
+    def lookup_action #:nodoc:
       @lookup_action ||= begin
-        action = template.controller.action_name
+        action = template.controller && template.controller.action_name
         return unless action
         action = action.to_sym
         ACTIONS[action] || action
@@ -362,12 +475,6 @@ module SimpleForm
     def find_input(attribute_name, options={}, &block) #:nodoc:
       column     = find_attribute_column(attribute_name)
       input_type = default_input_type(attribute_name, column, options)
-
-      if input_type == :radio
-        SimpleForm.deprecation_warn "Using `:as => :radio` as input type is " \
-          "deprecated, please change it to `:as => :radio_buttons`."
-        input_type = :radio_buttons
-      end
 
       if block_given?
         SimpleForm::Inputs::BlockInput.new(self, attribute_name, column, input_type, options, &block)
@@ -445,7 +552,7 @@ module SimpleForm
         end
     end
 
-    def find_wrapper_mapping(input_type)
+    def find_wrapper_mapping(input_type) #:nodoc:
       SimpleForm.wrapper_mappings && SimpleForm.wrapper_mappings[input_type]
     end
 
@@ -472,7 +579,7 @@ module SimpleForm
       begin
         at.const_get(mapping)
       rescue NameError => e
-        e.message =~ /#{mapping}$/ ? nil : raise
+        raise if e.message !~ /#{mapping}$/
       end
     end
   end

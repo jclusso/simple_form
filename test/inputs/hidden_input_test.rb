@@ -9,7 +9,7 @@ class HiddenInputTest < ActionView::TestCase
   end
 
   test 'hint should not be generated for hidden fields' do
-    store_translations(:en, :simple_form => { :hints => { :user => { :name => "text" } } }) do
+    store_translations(:en, simple_form: { hints: { user: { name: "text" } } }) do
       with_input_for @user, :name, :hidden
       assert_no_select 'span.hint'
     end
@@ -20,10 +20,11 @@ class HiddenInputTest < ActionView::TestCase
     assert_no_select 'label'
   end
 
-  test 'required/optional options should not be generated for hidden inputs' do
+  test 'required/aria-required/optional options should not be generated for hidden inputs' do
     with_input_for @user, :name, :hidden
     assert_no_select 'input.required'
     assert_no_select 'input[required]'
+    assert_no_select 'input[aria-required]'
     assert_no_select 'input.optional'
     assert_select 'input.hidden#user_name'
   end

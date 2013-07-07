@@ -22,16 +22,24 @@ class FormBuilderTest < ActionView::TestCase
     end
   end
 
+  test 'builder should work without controller' do
+    stub_any_instance ActionView::TestCase, :controller, nil do
+      simple_form_for @user do |f|
+        assert f.input(:name)
+      end
+    end
+  end
+
   test 'builder input should allow a block to configure input' do
     with_form_for @user, :name do
-      text_field_tag :foo, :bar, :id => :cool
+      text_field_tag :foo, :bar, id: :cool
     end
     assert_no_select 'input.string'
     assert_select 'input#cool'
   end
 
   test 'builder should allow adding custom input mappings for default input types' do
-    swap SimpleForm, :input_mappings => { /count$/ => :integer } do
+    swap SimpleForm, input_mappings: { /count$/ => :integer } do
       with_form_for @user, :post_count
       assert_no_select 'form input#user_post_count.string'
       assert_select 'form input#user_post_count.numeric.integer'
@@ -39,7 +47,7 @@ class FormBuilderTest < ActionView::TestCase
   end
 
   test 'builder should allow to skip input_type class' do
-    swap SimpleForm, :generate_additional_classes_for => [:label, :wrapper] do
+    swap SimpleForm, generate_additional_classes_for: [:label, :wrapper] do
       with_form_for @user, :post_count
       assert_no_select "form input#user_post_count.integer"
       assert_select "form input#user_post_count"
@@ -47,7 +55,7 @@ class FormBuilderTest < ActionView::TestCase
   end
 
   test 'builder should allow to add additional classes only for wrapper' do
-    swap SimpleForm, :generate_additional_classes_for => [:wrapper] do
+    swap SimpleForm, generate_additional_classes_for: [:wrapper] do
       with_form_for @user, :post_count
       assert_no_select "form input#user_post_count.string"
       assert_no_select "form label#user_post_count.string"
@@ -56,7 +64,7 @@ class FormBuilderTest < ActionView::TestCase
   end
 
   test 'builder should allow adding custom input mappings for integer input types' do
-    swap SimpleForm, :input_mappings => { /lock_version/ => :hidden } do
+    swap SimpleForm, input_mappings: { /lock_version/ => :hidden } do
       with_form_for @user, :lock_version
       assert_no_select 'form input#user_lock_version.integer'
       assert_select 'form input#user_lock_version.hidden'
@@ -64,7 +72,7 @@ class FormBuilderTest < ActionView::TestCase
   end
 
   test 'builder uses the first matching custom input map when more than one matches' do
-    swap SimpleForm, :input_mappings => { /count$/ => :integer, /^post_/ => :password } do
+    swap SimpleForm, input_mappings: { /count$/ => :integer, /^post_/ => :password } do
       with_form_for @user, :post_count
       assert_no_select 'form input#user_post_count.password'
       assert_select 'form input#user_post_count.numeric.integer'
@@ -72,11 +80,24 @@ class FormBuilderTest < ActionView::TestCase
   end
 
   test 'builder uses the custom map only for matched attributes' do
-    swap SimpleForm, :input_mappings => { /lock_version/ => :hidden } do
+    swap SimpleForm, input_mappings: { /lock_version/ => :hidden } do
       with_form_for @user, :post_count
       assert_no_select 'form input#user_post_count.hidden'
       assert_select 'form input#user_post_count.string'
     end
+  end
+
+  test 'builder allow to use numbers in the model name' do
+    user = UserNumber1And2.build(tags: [Tag.new(nil, 'Tag1')])
+
+    with_concat_form_for(user, url: '/') do |f|
+      f.simple_fields_for(:tags) do |tags|
+        tags.input :name
+      end
+    end
+
+    assert_select 'form .user_number1_and2_tags_name'
+    assert_no_select 'form .user_number1_and2_tags_1_name'
   end
 
   # INPUT TYPES
@@ -156,64 +177,62 @@ class FormBuilderTest < ActionView::TestCase
   end
 
   test 'builder should generate file for file columns' do
-    @user.avatar = mock("file")
-    @user.avatar.expects(:respond_to?).with(:mounted_as).returns(false)
-    @user.avatar.expects(:respond_to?).with(:file?).returns(false)
-    @user.avatar.expects(:respond_to?).with(:public_filename).returns(true)
+    @user.avatar = MiniTest::Mock.new
+    @user.avatar.expect(:public_filename, true)
 
     with_form_for @user, :avatar
     assert_select 'form input#user_avatar.file'
   end
 
   test 'builder should generate file for attributes that are real db columns but have file methods' do
-    @user.home_picture = mock("file")
-    @user.home_picture.expects(:respond_to?).with(:mounted_as).returns(true)
+    @user.home_picture = MiniTest::Mock.new
+    @user.home_picture.expect(:mounted_as, true)
 
     with_form_for @user, :home_picture
     assert_select 'form input#user_home_picture.file'
   end
 
   test 'build should generate select if a collection is given' do
-    with_form_for @user, :age, :collection => 1..60
+    with_form_for @user, :age, collection: 1..60
     assert_select 'form select#user_age.select'
   end
 
   test 'builder should allow overriding default input type for text' do
-    with_form_for @user, :name, :as => :text
+    with_form_for @user, :name, as: :text
     assert_no_select 'form input#user_name'
     assert_select 'form textarea#user_name.text'
 
-    with_form_for @user, :active, :as => :radio_buttons
+    with_form_for @user, :active, as: :radio_buttons
     assert_no_select 'form input[type=checkbox]'
-    assert_select 'form input.radio_buttons[type=radio]', :count => 2
+    assert_select 'form input.radio_buttons[type=radio]', count: 2
 
-    with_form_for @user, :born_at, :as => :string
+    with_form_for @user, :born_at, as: :string
     assert_no_select 'form select'
     assert_select 'form input#user_born_at.string'
   end
 
   # COMMON OPTIONS
   test 'builder should add chosen form class' do
-    swap SimpleForm, :form_class => :my_custom_class do
+    swap SimpleForm, form_class: :my_custom_class do
       with_form_for @user, :name
       assert_select 'form.my_custom_class'
     end
   end
 
   test 'builder should allow passing options to input' do
-    with_form_for @user, :name, :input_html => { :class => 'my_input', :id => 'my_input' }
+    with_form_for @user, :name, input_html: { class: 'my_input', id: 'my_input' }
     assert_select 'form input#my_input.my_input.string'
   end
 
   test 'builder should not propagate input options to wrapper' do
-    with_form_for @user, :name, :input_html => { :class => 'my_input', :id => 'my_input' }
+    with_form_for @user, :name, input_html: { class: 'my_input', id: 'my_input' }
     assert_no_select 'form div.input.my_input.string'
     assert_select 'form input#my_input.my_input.string'
   end
 
   test 'builder should not propagate input options to wrapper with custom wrapper' do
     swap_wrapper :default, self.custom_wrapper_with_wrapped_input do
-      with_form_for @user, :name, :input_html => { :class => 'my_input' }
+      with_form_for @user, :name, input_html: { class: 'my_input' }
       assert_no_select 'form div.input.my_input'
       assert_select 'form input.my_input.string'
     end
@@ -221,7 +240,7 @@ class FormBuilderTest < ActionView::TestCase
 
   test 'builder should not propagate label options to wrapper with custom wrapper' do
     swap_wrapper :default, self.custom_wrapper_with_wrapped_label do
-      with_form_for @user, :name, :label_html => { :class => 'my_label' }
+      with_form_for @user, :name, label_html: { class: 'my_label' }
       assert_no_select 'form div.label.my_label'
       assert_select 'form label.my_label.string'
     end
@@ -233,22 +252,22 @@ class FormBuilderTest < ActionView::TestCase
   end
 
   test 'builder should be able to disable the label for a input' do
-    with_form_for @user, :name, :label => false
+    with_form_for @user, :name, label: false
     assert_no_select 'form label'
   end
 
   test 'builder should be able to disable the label for an input and return a html safe string' do
-    with_form_for @user, :name, :label => false, :wrapper => custom_wrapper_with_wrapped_label_input
+    with_form_for @user, :name, label: false, wrapper: custom_wrapper_with_wrapped_label_input
     assert_select 'form input#user_name'
   end
 
   test 'builder should use custom label' do
-    with_form_for @user, :name, :label => 'Yay!'
+    with_form_for @user, :name, label: 'Yay!'
     assert_select 'form label', /Yay!/
   end
 
   test 'builder should pass options to label' do
-    with_form_for @user, :name, :label_html => { :id => "cool" }
+    with_form_for @user, :name, label_html: { id: "cool" }
     assert_select 'form label#cool', /Name/
   end
 
@@ -258,21 +277,21 @@ class FormBuilderTest < ActionView::TestCase
   end
 
   test 'builder should be able to add a hint for a input' do
-    with_form_for @user, :name, :hint => 'test'
+    with_form_for @user, :name, hint: 'test'
     assert_select 'span.hint', 'test'
   end
 
   test 'builder should be able to disable a hint even if it exists in i18n' do
-    store_translations(:en, :simple_form => { :hints => { :name => 'Hint test' } }) do
-      SimpleForm::Inputs::Base.any_instance.expects(:hint).never
-
-      with_form_for @user, :name, :hint => false
-      assert_no_select 'span.hint'
+    store_translations(:en, simple_form: { hints: { name: 'Hint test' } }) do
+      stub_any_instance(SimpleForm::Inputs::Base, :hint, -> { raise 'Never' }) do
+        with_form_for @user, :name, hint: false
+        assert_no_select 'span.hint'
+      end
     end
   end
 
   test 'builder should pass options to hint' do
-    with_form_for @user, :name, :hint => 'test', :hint_html => { :id => "cool" }
+    with_form_for @user, :name, hint: 'test', hint_html: { id: "cool" }
     assert_select 'span.hint#cool', 'test'
   end
 
@@ -287,68 +306,84 @@ class FormBuilderTest < ActionView::TestCase
   end
 
   test 'builder should be able to disable showing errors for a input' do
-    with_form_for @user, :name, :error => false
+    with_form_for @user, :name, error: false
     assert_no_select 'span.error'
   end
 
   test 'builder should pass options to errors' do
-    with_form_for @user, :name, :error_html => { :id => "cool" }
+    with_form_for @user, :name, error_html: { id: "cool" }
     assert_select 'span.error#cool', "can't be blank"
   end
 
   test 'placeholder should not be generated when set to false' do
-    store_translations(:en, :simple_form => { :placeholders => { :user => {
-      :name => 'Name goes here'
+    store_translations(:en, simple_form: { placeholders: { user: {
+      name: 'Name goes here'
     } } }) do
-      with_form_for @user, :name, :placeholder => false
+      with_form_for @user, :name, placeholder: false
       assert_no_select 'input[placeholder]'
     end
   end
 
   # DEFAULT OPTIONS
-  test 'builder should receive a default argument and pass it to the inputs' do
-    with_concat_form_for @user, :defaults => { :input_html => { :class => 'default_class' } } do |f|
-      f.input :name
+  [:input, :input_field].each do |method|
+    test "builder should receive a default argument and pass it to the inputs when calling '#{method}'" do
+      with_concat_form_for @user, defaults: { input_html: { class: 'default_class' } } do |f|
+        f.send(method, :name)
+      end
+      assert_select 'input.default_class'
     end
-    assert_select 'input.default_class'
+
+    test "builder should receive a default argument and pass it to the inputs without changing the defaults when calling '#{method}'" do
+      with_concat_form_for @user, defaults: { input_html: { class: 'default_class', id: 'default_id' } } do |f|
+        concat(f.send(method, :name))
+        concat(f.send(method, :credit_limit))
+      end
+
+      assert_select "input.string.default_class[name='user[name]']"
+      assert_no_select "input.string[name='user[credit_limit]']"
+    end
+
+    test "builder should receive a default argument and pass it to the inputs and nested form when calling '#{method}'" do
+      @user.company = Company.new(1, 'Empresa')
+
+      with_concat_form_for @user, defaults: { input_html: { class: 'default_class' } } do |f|
+        concat(f.send(method, :name))
+        concat(f.simple_fields_for(:company) do |company_form|
+          concat(company_form.send(method, :name))
+        end)
+      end
+
+      assert_select "input.string.default_class[name='user[name]']"
+      assert_select "input.string.default_class[name='user[company_attributes][name]']"
+    end
   end
 
-  test 'builder should receive a default argument and pass it to the inputs, respecting the specific options' do
-    with_concat_form_for @user, :defaults => { :input_html => { :class => 'default_class' } } do |f|
-      f.input :name, :input_html => { :id => 'specific_id' }
+  test "builder should receive a default argument and pass it to the inputs when calling 'input', respecting the specific options" do
+    with_concat_form_for @user, defaults: { input_html: { class: 'default_class' } } do |f|
+      f.input :name, input_html: { id: 'specific_id' }
     end
     assert_select 'input.default_class#specific_id'
   end
 
-  test 'builder should receive a default argument and pass it to the inputs, overwriting the defaults with specific options' do
-    with_concat_form_for @user, :defaults => { :input_html => { :class => 'default_class', :id => 'default_id' } } do |f|
-      f.input :name, :input_html => { :id => 'specific_id' }
+  test "builder should receive a default argument and pass it to the inputs when calling 'input_field', respecting the specific options" do
+    with_concat_form_for @user, defaults: { input_html: { class: 'default_class' } } do |f|
+      f.input_field :name, id: 'specific_id'
     end
     assert_select 'input.default_class#specific_id'
   end
 
-  test 'builder should receive a default argument and pass it to the inputs without changing the defaults' do
-    with_concat_form_for @user, :defaults => { :input_html => { :class => 'default_class', :id => 'default_id' } } do |f|
-      concat(f.input :name)
-      concat(f.input :credit_limit)
+  test "builder should receive a default argument and pass it to the inputs when calling 'input', overwriting the defaults with specific options" do
+    with_concat_form_for @user, defaults: { input_html: { class: 'default_class', id: 'default_id' } } do |f|
+      f.input :name, input_html: { id: 'specific_id' }
     end
-
-    assert_select "input.string.default_class[name='user[name]']"
-    assert_no_select "input.string[name='user[credit_limit]']"
+    assert_select 'input.default_class#specific_id'
   end
 
-  test 'builder should receive a default argument and pass it to the inputs and nested form' do
-    @user.company = Company.new(1, 'Empresa')
-
-    with_concat_form_for @user, :defaults => { :input_html => { :class => 'default_class' } } do |f|
-      concat(f.input :name)
-      concat(f.simple_fields_for(:company) do |company_form|
-        concat(company_form.input :name)
-      end)
+  test "builder should receive a default argument and pass it to the inputs when calling 'input_field', overwriting the defaults with specific options" do
+    with_concat_form_for @user, defaults: { input_html: { class: 'default_class', id: 'default_id' } } do |f|
+      f.input_field :name, id: 'specific_id'
     end
-
-    assert_select "input.string.default_class[name='user[name]']"
-    assert_select "input.string.default_class[name='user[company_attributes][name]']"
+    assert_select 'input.default_class#specific_id'
   end
 
   # WITHOUT OBJECT
@@ -370,9 +405,9 @@ class FormBuilderTest < ActionView::TestCase
   end
 
   test 'builder should allow overriding input type when object is not present' do
-    with_form_for :project, :created_at, :as => :datetime
+    with_form_for :project, :created_at, as: :datetime
     assert_select 'form select.datetime#project_created_at_1i'
-    with_form_for :project, :budget, :as => :decimal
+    with_form_for :project, :budget, as: :decimal
     assert_select 'form input.decimal#project_budget'
   end
 

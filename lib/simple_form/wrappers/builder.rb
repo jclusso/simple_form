@@ -12,18 +12,18 @@ module SimpleForm
     #       b.optional :placeholder
     #
     #       # Use a component with specific wrapper options
-    #       b.use :error, :wrap_with => { :tag => "span", :class => "error" }
+    #       b.use :error, wrap_with: { tag: "span", class: "error" }
     #
     #       # Use a set of components by wrapping them in a tag+class.
-    #       b.wrapper :tag => "div", :class => "another" do |ba|
+    #       b.wrapper tag: "div", class: "another" do |ba|
     #         ba.use :label
     #         ba.use :input
     #       end
     #
     #       # Use a set of components by wrapping them in a tag+class.
     #       # This wrapper is identified by :label_input, which means it can
-    #       # be turned off on demand with `f.input :name, :label_input => false`
-    #       b.wrapper :label_input, :tag => "div", :class => "another" do |ba|
+    #       # be turned off on demand with `f.input :name, label_input: false`
+    #       b.wrapper :label_input, tag: "div", class: "another" do |ba|
     #         ba.use :label
     #         ba.use :input
     #       end
@@ -32,7 +32,7 @@ module SimpleForm
     # The builder also accepts default options at the root level. This is usually
     # used if you want a component to be disabled by default:
     #
-    #     config.wrappers :hint => false do |b|
+    #     config.wrappers hint: false do |b|
     #       b.use :hint
     #       b.use :label_input
     #     end
@@ -46,18 +46,6 @@ module SimpleForm
       end
 
       def use(name, options=nil, &block)
-        if block_given?
-          ActiveSupport::Deprecation.warn "Passing a block to use is deprecated. " \
-            "Please use wrapper instead of use."
-          return wrapper(name, options, &block)
-        end
-
-        if options && options.keys != [:wrap_with]
-          ActiveSupport::Deprecation.warn "Passing :tag, :class and others to use is deprecated. " \
-            "Please invoke b.use #{name.inspect}, :wrap_with => #{options.inspect} instead."
-          options = { :wrap_with => options }
-        end
-
         if options && wrapper = options[:wrap_with]
           @components << Single.new(name, wrapper)
         else
@@ -66,18 +54,6 @@ module SimpleForm
       end
 
       def optional(name, options=nil, &block)
-        if block_given?
-          ActiveSupport::Deprecation.warn "Passing a block to optional is deprecated. " \
-            "Please use wrapper instead of optional."
-          return wrapper(name, options, &block)
-        end
-
-        if options && options.keys != [:wrap_with]
-          ActiveSupport::Deprecation.warn "Passing :tag, :class and others to optional is deprecated. " \
-            "Please invoke b.optional #{name.inspect}, :wrap_with => #{options.inspect} instead."
-          options = { :wrap_with => options }
-        end
-
         @options[name] = false
         use(name, options, &block)
       end

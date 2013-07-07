@@ -1,3 +1,5 @@
+require 'simple_form/i18n_cache'
+
 module SimpleForm
   module Inputs
     class Base
@@ -22,7 +24,7 @@ module SimpleForm
       attr_reader :attribute_name, :column, :input_type, :reflection,
                   :options, :input_html_options, :input_html_classes, :html_classes
 
-      delegate :template, :object, :object_name, :lookup_model_names, :lookup_action, :to => :@builder
+      delegate :template, :object, :object_name, :lookup_model_names, :lookup_action, to: :@builder
 
       class_attribute :default_options
       self.default_options = {}
@@ -87,10 +89,6 @@ module SimpleForm
       end
 
       private
-
-      def add_size!
-        input_html_options[:size] ||= [limit, SimpleForm.default_input_size].compact.min
-      end
 
       def limit
         if column
@@ -177,7 +175,7 @@ module SimpleForm
         lookups << :"defaults.#{reflection_or_attribute_name}"
         lookups << default
 
-        I18n.t(lookups.shift, :scope => :"simple_form.#{namespace}", :default => lookups).presence
+        I18n.t(lookups.shift, scope: :"simple_form.#{namespace}", default: lookups).presence
       end
     end
   end

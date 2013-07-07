@@ -1,14 +1,11 @@
 language: ruby
 rvm:
   - 1.9.3
-  - ree
-  - jruby-18mode
-gemfile:
-  - gemfiles/Gemfile-rails.3.0.x
-  - gemfiles/Gemfile-rails.3.1.x
-  - Gemfile
+  - 2.0.0
 notifications:
-  recipients:
-    - jose.valim@plataformatec.com.br
-    - carlos@plataformatec.com.br
-    - rafael.franca@plataformatec.com.br
+  email: false
+  campfire:
+    on_success: change
+    on_failure: always
+    rooms:
+      - secure: "0UzWiVjxtaMsAiLCdK0p5ZIpWi94rmH71hbEQ3tuKTSSrsh9qW16cd39TS6i\nOdlSojcdzACanjIL8Z2qyG2DHScLBZAzWdDNWpnbtpJfDQ+p5ldDdbFmL6+5\n0t2nvv9uNQvhSOMD9ukdb7BFlRvd8Yq7zdjyAKt8efV2Abx7Msk="
