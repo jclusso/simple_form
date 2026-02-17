@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module MiscHelpers
   def store_translations(locale, translations, &block)
     I18n.backend.store_translations locale, translations
@@ -46,12 +47,12 @@ module MiscHelpers
     end
   end
 
-  def swap_wrapper(name=:default, wrapper=self.custom_wrapper)
-    old = SimpleForm.wrappers[name]
-    SimpleForm.wrappers[name] = wrapper
+  def swap_wrapper(name = :default, wrapper = custom_wrapper)
+    old = SimpleForm.wrappers[name.to_s]
+    SimpleForm.wrappers[name.to_s] = wrapper
     yield
   ensure
-    SimpleForm.wrappers[name] = old
+    SimpleForm.wrappers[name.to_s] = old
   end
 
   def custom_wrapper
@@ -65,6 +66,62 @@ module MiscHelpers
         be.use :error, wrap_with: { tag: :span, class: "omg_error" }
       end
       b.use :hint, wrap_with: { class: "omg_hint" }
+    end
+  end
+
+  def custom_wrapper_with_wrapped_optional_component
+    SimpleForm.build tag: :section, class: "custom_wrapper" do |b|
+      b.wrapper tag: :div, class: 'no_output_wrapper' do |ba|
+        ba.optional :hint, wrap_with: { tag: :p, class: 'omg_hint' }
+      end
+    end
+  end
+
+  def custom_wrapper_with_unless_blank
+    SimpleForm.build tag: :section, class: "custom_wrapper" do |b|
+      b.wrapper tag: :div, class: 'no_output_wrapper', unless_blank: true do |ba|
+        ba.optional :hint, wrap_with: { tag: :p, class: 'omg_hint' }
+      end
+    end
+  end
+
+  def custom_wrapper_with_input_class
+    SimpleForm.build tag: :div, class: "custom_wrapper" do |b|
+      b.use :label
+      b.use :input, class: 'inline-class'
+    end
+  end
+
+  def custom_wrapper_with_input_data_modal
+    SimpleForm.build tag: :div, class: "custom_wrapper" do |b|
+      b.use :label
+      b.use :input, data: { modal: 'data-modal', wrapper: 'data-wrapper' }
+    end
+  end
+
+  def custom_wrapper_with_input_aria_modal
+    SimpleForm.build tag: :div, class: "custom_wrapper" do |b|
+      b.use :label
+      b.use :input, aria: { modal: 'aria-modal', wrapper: 'aria-wrapper' }
+    end
+  end
+
+  def custom_wrapper_with_label_class
+    SimpleForm.build tag: :div, class: "custom_wrapper" do |b|
+      b.use :label, class: 'inline-class'
+      b.use :input
+    end
+  end
+
+  def custom_wrapper_with_input_attributes
+    SimpleForm.build tag: :div, class: "custom_wrapper" do |b|
+      b.use :input, data: { modal: true }
+    end
+  end
+
+  def custom_wrapper_with_label_input_class
+    SimpleForm.build tag: :div, class: "custom_wrapper" do |b|
+      b.use :label_input, class: 'inline-class'
     end
   end
 
@@ -112,6 +169,57 @@ module MiscHelpers
     end
   end
 
+  def custom_wrapper_with_additional_attributes
+    SimpleForm.build tag: :div, class: 'custom_wrapper', html: { data: { wrapper: :test }, title: 'some title' } do |b|
+      b.use :label_input
+    end
+  end
+
+  def custom_wrapper_with_full_error
+    SimpleForm.build tag: :div, class: 'custom_wrapper' do |b|
+      b.use :full_error,  wrap_with: { tag: :span, class: :error }
+    end
+  end
+
+  def custom_wrapper_with_label_text
+    SimpleForm.build label_text: proc { |label, required| "**#{label}**" } do |b|
+      b.use :label_input
+    end
+  end
+
+  def custom_wrapper_with_custom_label_component
+    SimpleForm.build tag: :span, class: 'custom_wrapper' do |b|
+      b.use :label_text
+    end
+  end
+
+  def custom_wrapper_with_html5_components
+    SimpleForm.build tag: :span, class: 'custom_wrapper' do |b|
+      b.use :label_text
+    end
+  end
+
+  def custom_wrapper_with_required_input
+    SimpleForm.build tag: :span, class: 'custom_wrapper' do |b|
+      b.use :html5
+      b.use :input, required: true
+    end
+  end
+
+  def custom_wrapper_with_input_error_class
+    SimpleForm.build tag: :div, class: "custom_wrapper", error_class: :field_with_errors do |b|
+      b.use :label
+      b.use :input, class: 'inline-class', error_class: 'is-invalid'
+    end
+  end
+
+  def custom_wrapper_with_input_valid_class(valid_class: :field_without_errors)
+    SimpleForm.build tag: :div, class: "custom_wrapper", valid_class: valid_class do |b|
+      b.use :label
+      b.use :input, class: 'inline-class', valid_class: 'is-valid'
+    end
+  end
+
   def custom_form_for(object, *args, &block)
     simple_form_for(object, *args, { builder: CustomFormBuilder }, &block)
   end
@@ -142,9 +250,15 @@ module MiscHelpers
     end
   end
 
-  def with_input_for(object, attribute_name, type, options={})
+  def with_input_for(object, attribute_name, type, options = {})
     with_concat_form_for(object) do |f|
       f.input(attribute_name, options.merge(as: type))
+    end
+  end
+
+  def with_input_field_for(object, *args)
+    with_concat_form_for(object) do |f|
+      f.input_field(*args)
     end
   end
 end

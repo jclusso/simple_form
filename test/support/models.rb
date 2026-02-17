@@ -1,22 +1,45 @@
-Association = Struct.new(:klass, :name, :macro, :options)
+# frozen_string_literal: true
+Association = Struct.new(:klass, :name, :macro, :scope, :options)
 
 Column = Struct.new(:name, :type, :limit) do
-  # Returns +true+ if the column is either of type integer, float or decimal.
-  def number?
-    type == :integer || type == :float || type == :decimal
-  end
 end
 
-Relation = Struct.new(:all) do
+Relation = Struct.new(:records) do
+  delegate :each, to: :records
+
   def where(conditions = nil)
-    self.class.new conditions ? all.first : all
+    self.class.new conditions ? [records.first] : records
   end
 
   def order(conditions = nil)
-    self.class.new conditions ? all.last : all
+    self.class.new conditions ? records.last : records
   end
 
-  alias_method :to_a, :all
+  alias_method :to_a,   :records
+  alias_method :to_ary, :records
+end
+
+Decorator = Struct.new(:object) do
+  def to_model
+    object
+  end
+end
+
+Picture = Struct.new(:id, :name) do
+  extend ActiveModel::Naming
+  include ActiveModel::Conversion
+
+  def self.where(conditions = nil)
+    if conditions.is_a?(Hash) && conditions[:name]
+      all.to_a.last
+    else
+      all
+    end
+  end
+
+  def self.all
+    Relation.new((1..3).map { |i| new(i, "#{name} #{i}") })
+  end
 end
 
 Company = Struct.new(:id, :name) do
@@ -28,8 +51,21 @@ Company = Struct.new(:id, :name) do
   end
 
   def self._relation
-    Relation.new(all)
+    all
   end
+
+  def self.all
+    Relation.new((1..3).map { |i| new(i, "#{name} #{i}") })
+  end
+
+  def persisted?
+    true
+  end
+end
+
+Friend = Struct.new(:id, :name) do
+  extend ActiveModel::Naming
+  include ActiveModel::Conversion
 
   def self.all
     (1..3).map { |i| new(i, "#{name} #{i}") }
@@ -40,7 +76,11 @@ Company = Struct.new(:id, :name) do
   end
 end
 
-class Tag < Company; end
+class Tag < Company
+  def group_method
+    ["category-1"]
+  end
+end
 
 TagGroup = Struct.new(:id, :name, :tags)
 
@@ -48,12 +88,14 @@ class User
   extend ActiveModel::Naming
   include ActiveModel::Conversion
 
-  attr_accessor :id, :name, :company, :company_id, :time_zone, :active, :age,
+  attr_accessor :id, :name, :username, :company, :company_id, :time_zone, :active, :age,
     :description, :created_at, :updated_at, :credit_limit, :password, :url,
     :delivery_time, :born_at, :special_company_id, :country, :tags, :tag_ids,
     :avatar, :home_picture, :email, :status, :residence_country, :phone_number,
     :post_count, :lock_version, :amount, :attempts, :action, :credit_card, :gender,
-    :extra_special_company_id
+    :extra_special_company_id, :pictures, :picture_ids, :special_pictures,
+    :special_picture_ids, :uuid, :friends, :friend_ids, :special_tags, :special_tag_ids,
+    :citext, :hstore, :json, :jsonb, :hourly, :favorite_color
 
   def self.build(extra_attributes = {})
     attributes = {
@@ -66,7 +108,7 @@ class User
     new attributes
   end
 
-  def initialize(options={})
+  def initialize(options = {})
     @new_record = false
     options.each do |key, value|
       send("#{key}=", value)
@@ -104,48 +146,110 @@ class User
       when :attempts      then :integer
       when :action        then :string
       when :credit_card   then :string
+      else attribute.to_sym
     end
     Column.new(attribute, column_type, limit)
   end
 
-  def self.human_attribute_name(attribute)
+  begin
+    require 'active_model/type'
+    begin
+      ActiveModel::Type.lookup(:text)
+    rescue ArgumentError        # :text is no longer an ActiveModel::Type
+      # But we don't want our tests to depend on ActiveRecord
+      class ::ActiveModel::Type::Text < ActiveModel::Type::String
+        def type; :text; end
+      end
+      ActiveModel::Type.register(:text, ActiveModel::Type::Text)
+    end
+    def type_for_attribute(attribute)
+      column_type, limit = case attribute
+        when 'name', 'status', 'password' then [:string, 100]
+        when 'description'   then [:text, 200]
+        when 'age'           then :integer
+        when 'credit_limit'  then [:decimal, 15]
+        when 'active'        then :boolean
+        when 'born_at'       then :date
+        when 'delivery_time' then :time
+        when 'created_at'    then :datetime
+        when 'updated_at'    then :datetime
+        when 'lock_version'  then :integer
+        when 'home_picture'  then :string
+        when 'amount'        then :integer
+        when 'attempts'      then :integer
+        when 'action'        then :string
+        when 'credit_card'   then :string
+        when 'uuid'          then :string
+        when 'citext'        then :string
+        when 'hstore'        then [:text, 200]
+        when 'json'          then [:text, 200]
+        when 'jsonb'         then [:text, 200]
+      end
+
+      ActiveModel::Type.lookup(column_type, limit: limit)
+    end
+  rescue LoadError
+  end
+
+  def has_attribute?(attribute)
+    case attribute.to_sym
+      when :name, :status, :password, :description, :age,
+        :credit_limit, :active, :born_at, :delivery_time,
+        :created_at, :updated_at, :lock_version, :home_picture,
+        :amount, :attempts, :action, :credit_card, :uuid,
+        :citext, :hstore, :json, :jsonb then true
+      else false
+    end
+  end
+
+  def self.human_attribute_name(attribute, options = {})
     case attribute
-      when 'name'
+      when 'name', :name
         'Super User Name!'
       when 'description'
         'User Description!'
+      when 'status'
+        "[#{options[:base].id}] User Status!"
       when 'company'
         'Company Human Name!'
       else
-        attribute.humanize
+        attribute.to_s.humanize
     end
   end
 
   def self.reflect_on_association(association)
     case association
       when :company
-        Association.new(Company, association, :belongs_to, {})
+        Association.new(Company, association, :belongs_to, nil, {})
       when :tags
-        Association.new(Tag, association, :has_many, {})
+        Association.new(Tag, association, :has_many, nil, {})
+      when :special_tags
+        Association.new(Tag, association, :has_many, ->(user) { where(id: user.id) }, {})
       when :first_company
-        Association.new(Company, association, :has_one, {})
+        Association.new(Company, association, :has_one, nil, {})
       when :special_company
-        Association.new(Company, association, :belongs_to, { conditions: { id: 1 } })
+        Association.new(Company, association, :belongs_to, nil, conditions: { id: 1 })
       when :extra_special_company
-        Association.new(Company, association, :belongs_to, { conditions: proc { { id: 1 } } })
+        Association.new(Company, association, :belongs_to, nil, conditions: proc { { id: self.id } })
+      when :pictures
+        Association.new(Picture, association, :has_many, nil, {})
+      when :special_pictures
+        Association.new(Picture, association, :has_many, proc { where(name: self.name) }, {})
+      when :friends
+        Association.new(Friend, association, :has_many, nil, {})
     end
   end
 
   def errors
     @errors ||= begin
-      hash = Hash.new { |h,k| h[k] = [] }
-      hash.merge!(
-        name: ["can't be blank"],
-        description: ["must be longer than 15 characters"],
-        age: ["is not a number", "must be greater than 18"],
-        company: ["company must be present"],
-        company_id: ["must be valid"]
-      )
+      errors = ActiveModel::Errors.new(self)
+      errors.add(:name, "cannot be blank")
+      errors.add(:description, 'must be longer than 15 characters')
+      errors.add(:age, 'is not a number')
+      errors.add(:age, 'must be greater than 18')
+      errors.add(:company, 'company must be present')
+      errors.add(:company_id, 'must be valid')
+      errors
     end
   end
 
@@ -157,9 +261,10 @@ end
 class ValidatingUser < User
   include ActiveModel::Validations
   validates :name, presence: true
+  validates :username, presence: true
   validates :company, presence: true
-  validates :age, presence: true, if: Proc.new { |user| user.name }
-  validates :amount, presence: true, unless: Proc.new { |user| user.age }
+  validates :age, presence: true, if: proc { |user| user.name }
+  validates :amount, presence: true, unless: proc { |user| user.age }
 
   validates :action,            presence: true, on: :create
   validates :credit_limit,      presence: true, on: :save
@@ -177,9 +282,13 @@ class ValidatingUser < User
     greater_than_or_equal_to: :min_attempts,
     less_than_or_equal_to: :max_attempts,
     only_integer: true
-  validates_length_of :name, maximum: 25
-  validates_length_of :description, maximum: 50
-  validates_length_of :action, maximum: 10, tokenizer: lambda { |str| str.scan(/\w+/) }
+  validates_length_of :name, maximum: 25, minimum: 5
+  if ActiveModel.gem_version >= Gem::Version::new("7.1.0")
+    validates_length_of :username, maximum: -> { 30 }, minimum: -> { 10 }
+  else
+    validates_length_of :username, maximum: ->(_) { 30 }, minimum: ->(_) { 10 }
+  end
+  validates_length_of :description, in: 15..50
   validates_length_of :home_picture, is: 12
 
   def min_amount
@@ -206,16 +315,16 @@ class OtherValidatingUser < User
     less_than: 100,
     only_integer: true
   validates_numericality_of :amount,
-    greater_than: Proc.new { |user| user.age },
-    less_than: Proc.new { |user| user.age + 100 },
+    greater_than: proc { |user| user.age },
+    less_than: proc { |user| user.age + 100 },
     only_integer: true
   validates_numericality_of :attempts,
-    greater_than_or_equal_to: Proc.new { |user| user.age },
-    less_than_or_equal_to: Proc.new { |user| user.age + 100 },
+    greater_than_or_equal_to: proc { |user| user.age },
+    less_than_or_equal_to: proc { |user| user.age + 100 },
     only_integer: true
 
   validates_format_of :country, with: /\w+/
-  validates_format_of :name, with: Proc.new { /\w+/ }
+  validates_format_of :name, with: proc { /\w+/ }
   validates_format_of :description, without: /\d+/
 end
 
@@ -231,4 +340,26 @@ class HashBackedAuthor < Hash
 end
 
 class UserNumber1And2 < User
+end
+
+class UserWithAttachment < User
+  def avatar_attachment
+    OpenStruct.new
+  end
+
+  def avatars_attachments
+    OpenStruct.new
+  end
+
+  def remote_cover_url
+    "/uploads/cover.png"
+  end
+
+  def profile_image_attacher
+    OpenStruct.new
+  end
+
+  def portrait_file_name
+    "portrait.png"
+  end
 end

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module SimpleForm
   module ActionViewExtensions
     # This module creates SimpleForm wrappers around default form_for and fields_for.
@@ -10,13 +11,17 @@ module SimpleForm
     #
     module FormHelper
 
-      def simple_form_for(record, options={}, &block)
+      def simple_form_for(record, options = {}, &block)
         options[:builder] ||= SimpleForm::FormBuilder
         options[:html] ||= {}
         unless options[:html].key?(:novalidate)
           options[:html][:novalidate] = !SimpleForm.browser_validations
         end
-        options[:html][:class] = [SimpleForm.form_class, simple_form_css_class(record, options)].compact.join(" ")
+        if options[:html].key?(:class)
+          options[:html][:class] = [SimpleForm.form_class, options[:html][:class]].compact
+        else
+          options[:html][:class] = [SimpleForm.form_class, SimpleForm.default_form_class, simple_form_css_class(record, options)].compact
+        end
 
         with_simple_form_field_error_proc do
           form_for(record, options, &block)
@@ -63,4 +68,6 @@ module SimpleForm
   end
 end
 
-ActionView::Base.send :include, SimpleForm::ActionViewExtensions::FormHelper
+ActiveSupport.on_load(:action_view) do
+  include SimpleForm::ActionViewExtensions::FormHelper
+end

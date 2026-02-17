@@ -1,7 +1,8 @@
+# frozen_string_literal: true
 module SimpleForm
   module Wrappers
     # A wrapper is an object that holds several components and render them.
-    # A component may either be a symbol or any object that responds to `render`.
+    # A component may be any object that responds to `render`.
     # This API allows inputs/components to be easily wrapped, removing the
     # need to modify the code only to wrap input in an extra tag.
     #
@@ -10,9 +11,8 @@ module SimpleForm
     # on demand on input generation.
     class Many
       attr_reader :namespace, :defaults, :components
-      alias :to_sym :namespace
 
-      def initialize(namespace, components, defaults={})
+      def initialize(namespace, components, defaults = {})
         @namespace  = namespace
         @components = components
         @defaults   = defaults
@@ -25,8 +25,8 @@ module SimpleForm
         options = input.options
 
         components.each do |component|
-          next if options[component] == false
-          rendered = component.respond_to?(:render) ? component.render(input) : input.send(component)
+          next if options[component.namespace] == false
+          rendered = component.render(input)
           content.safe_concat rendered.to_s if rendered
         end
 
@@ -51,6 +51,7 @@ module SimpleForm
 
       def wrap(input, options, content)
         return content if options[namespace] == false
+        return if defaults[:unless_blank] && content.empty?
 
         tag = (namespace && options[:"#{namespace}_tag"]) || @defaults[:tag]
         return content unless tag
@@ -62,7 +63,7 @@ module SimpleForm
       end
 
       def html_options(options)
-        options[:"#{namespace}_html"] || {}
+        (@defaults[:html] || {}).merge(options[:"#{namespace}_html"] || {})
       end
 
       def html_classes(input, options)

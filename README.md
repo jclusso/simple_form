@@ -1,20 +1,52 @@
-![Simple Form Logo](https://raw.github.com/plataformatec/simple_form/master/simple_form.png)
+![Simple Form Logo](https://raw.github.com/heartcombo/simple_form/main/simple_form.png)
 
-By [Plataformatec](http://plataformatec.com.br/).
-
-[![Gem Version](https://fury-badge.herokuapp.com/rb/simple_form.png)](http://badge.fury.io/rb/simple_form)
-[![Build Status](https://api.travis-ci.org/plataformatec/simple_form.png?branch=master)](http://travis-ci.org/plataformatec/simple_form)
-[![Code Climate](https://codeclimate.com/github/plataformatec/simple_form.png)](https://codeclimate.com/github/plataformatec/simple_form)
+[![Gem Version](https://badge.fury.io/rb/simple_form.svg)](https://badge.fury.io/rb/simple_form)
 
 Rails forms made easy.
 
-**SimpleForm** aims to be as flexible as possible while helping you with powerful components to create
-your forms. The basic goal of SimpleForm is to not touch your way of defining the layout, letting
+**Simple Form** aims to be as flexible as possible while helping you with powerful components to create
+your forms. The basic goal of **Simple Form** is to not touch your way of defining the layout, letting
 you find the better design for your eyes. Most of the DSL was inherited from Formtastic,
 which we are thankful for and should make you feel right at home.
 
-INFO: This README is [also available in a friendly navigable format](http://simple-form.plataformatec.com.br/)
-and refers to **SimpleForm** 3.0. For older releases, check the related branch for your version.
+INFO: This README refers to **Simple Form** 5.0. For older releases, check the related branch for your version.
+
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+## Table of Contents
+
+- [Installation](#installation)
+  - [Bootstrap](#bootstrap-5)
+  - [Zurb Foundation 5](#zurb-foundation-5)
+  - [Country Select](#country-select)
+- [Usage](#usage)
+  - [Stripping away all wrapper divs](#stripping-away-all-wrapper-divs)
+  - [Collections](#collections)
+  - [Priority](#priority)
+  - [Associations](#associations)
+  - [Buttons](#buttons)
+  - [Wrapping Rails Form Helpers](#wrapping-rails-form-helpers)
+  - [Extra helpers](#extra-helpers)
+    - [Simple Fields For](#simple-fields-for)
+    - [Collection Radio Buttons](#collection-radio-buttons)
+    - [Collection Check Boxes](#collection-check-boxes)
+- [Available input types and defaults for each column type](#available-input-types-and-defaults-for-each-column-type)
+- [Custom inputs](#custom-inputs)
+- [Custom form builder](#custom-form-builder)
+- [I18n](#i18n)
+- [Configuration](#configuration)
+  - [The wrappers API](#the-wrappers-api)
+- [Custom Components](#custom-components)
+- [HTML 5 Notice](#html-5-notice)
+  - [Using non Active Record objects](#using-non-active-record-objects)
+- [Information](#information)
+  - [RDocs](#rdocs)
+  - [Supported Ruby / Rails versions](#supported-ruby--rails-versions)
+  - [Bug reports](#bug-reports)
+- [Maintainers](#maintainers)
+- [License](#license)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Installation
 
@@ -36,52 +68,63 @@ Run the generator:
 rails generate simple_form:install
 ```
 
-Also, if you want to use the country select, you will need the
+### Bootstrap 5
+
+**Simple Form** can be easily integrated with [Bootstrap 5](https://getbootstrap.com/).
+Use the `bootstrap` option in the install generator, like this:
+
+```console
+rails generate simple_form:install --bootstrap
+```
+
+This will add an initializer that configures **Simple Form** wrappers for
+Bootstrap 5's [form controls](https://getbootstrap.com/docs/5.0/forms/overview/).
+You have to be sure that you added a copy of the [Bootstrap](https://getbootstrap.com/)
+assets on your application.
+
+For more information see the generator output, our
+[example application code](https://github.com/heartcombo/simple_form-bootstrap).
+
+### Zurb Foundation 5
+
+To generate wrappers that are compatible with [Zurb Foundation 5](https://get.foundation/sites/docs-v5/), pass
+the `foundation` option to the generator, like this:
+
+```console
+rails generate simple_form:install --foundation
+```
+
+Please note that the Foundation wrapper does not support the `:hint` option by default. In order to
+enable hints, please uncomment the appropriate line in `config/initializers/simple_form_foundation.rb`.
+You will need to provide your own CSS styles for hints.
+
+Please see the [instructions on how to install Foundation in a Rails app](https://get.foundation/sites/docs-v5/applications.html).
+
+### Country Select
+
+If you want to use the country select, you will need the
 [country_select gem](https://rubygems.org/gems/country_select), add it to your Gemfile:
 
 ```ruby
 gem 'country_select'
 ```
 
-### Twitter Bootstrap
+If you don't want to use the gem you can easily override this behaviour by mapping the
+country inputs to something else, with a line like this in your `simple_form.rb` initializer:
 
-**SimpleForm** can be easily integrated to the [Twitter Bootstrap](http://twitter.github.com/bootstrap).
-To do that you have to use the `bootstrap` option in the install generator, like this:
-
-```console
-rails generate simple_form:install --bootstrap
+```ruby
+config.input_mappings = { /country/ => :string }
 ```
-
-You have to be sure that you added a copy of the [Twitter Bootstrap](http://twitter.github.com/bootstrap)
-assets on your application.
-
-For more information see the generator output, our
-[example application code](https://github.com/rafaelfranca/simple_form-bootstrap) and
-[the live example app](http://simple-form-bootstrap.plataformatec.com.br/).
-
-**NOTE**: **SimpleForm** integration requires Twitter Bootstrap version 2.0 or higher.
-
-### Zurb Foundation 3
-
-To generate wrappers that are compatible with [Zurb Foundation 3](http://foundation.zurb.com/), pass the `foundation` option to the generator, like this:
-
-```console
-rails generate simple_form:install --foundation
-```
-
-Please note that the Foundation wrapper does not support the `:hint` option by default. In order to enable hints, please uncomment the appropriate line in `config/initializers/simple_form_foundation.rb`. You will need to provide your own CSS styles for hints.
-
-Please see the [instructions on how to install Foundation in a Rails app](http://foundation.zurb.com/old-docs/f3/rails.php).
 
 ## Usage
 
-**SimpleForm** was designed to be customized as you need to. Basically it's a stack of components that
+**Simple Form** was designed to be customized as you need to. Basically it's a stack of components that
 are invoked to create a complete html input for you, which by default contains label, hints, errors
 and the input itself. It does not aim to create a lot of different logic from the default Rails
-form helpers, as they do a great work by themselves. Instead, **SimpleForm** acts as a DSL and just
+form helpers, as they do a great job by themselves. Instead, **Simple Form** acts as a DSL and just
 maps your input type (retrieved from the column definition in the database) to a specific helper method.
 
-To start using **SimpleForm** you just have to use the helper it provides:
+To start using **Simple Form** you just have to use the helper it provides:
 
 ```erb
 <%= simple_form_for @user do |f| %>
@@ -94,12 +137,12 @@ To start using **SimpleForm** you just have to use the helper it provides:
 This will generate an entire form with labels for user name and password as well, and render errors
 by default when you render the form with invalid data (after submitting for example).
 
-You can overwrite the default label by passing it to the input method. You can also add a hint or
-even a placeholder. For boolean inputs, you can add an inline label as well:
+You can overwrite the default label by passing it to the input method. You can also add a hint,
+an error, or even a placeholder. For boolean inputs, you can add an inline label as well:
 
 ```erb
 <%= simple_form_for @user do |f| %>
-  <%= f.input :username, label: 'Your username please' %>
+  <%= f.input :username, label: 'Your username please', error: 'Username is mandatory, please specify one' %>
   <%= f.input :password, hint: 'No special characters.' %>
   <%= f.input :email, placeholder: 'user@domain.com' %>
   <%= f.input :remember_me, inline_label: 'Yes, remember me' %>
@@ -107,13 +150,13 @@ even a placeholder. For boolean inputs, you can add an inline label as well:
 <% end %>
 ```
 
-In some cases you may want to disable labels, hints or error. Or you may want to configure the html
+In some cases you may want to disable labels, hints or errors. Or you may want to configure the html
 of any of them:
 
 ```erb
 <%= simple_form_for @user do |f| %>
-  <%= f.input :username, label_html: { class: 'my_class' } %>
-  <%= f.input :password, hint: false, error_html: { id: 'password_error'} %>
+  <%= f.input :username, label_html: { class: 'my_class' }, hint_html: { class: 'hint_class' } %>
+  <%= f.input :password, hint: false, error_html: { id: 'password_error' } %>
   <%= f.input :password_confirmation, label: false %>
   <%= f.button :submit %>
 <% end %>
@@ -144,7 +187,7 @@ overwrite the defaults:
 <% end %>
 ```
 
-Since **SimpleForm** generates a wrapper div around your label and input by default, you can pass
+Since **Simple Form** generates a wrapper div around your label and input by default, you can pass
 any html attribute to that wrapper as well using the `:wrapper_html` option, like so:
 
 ```erb
@@ -158,7 +201,10 @@ any html attribute to that wrapper as well using the `:wrapper_html` option, lik
 
 Required fields are marked with an * prepended to their labels.
 
-By default all inputs are required. When the form object has `presence` validations attached to its fields, **SimpleForm** tells required and optional fields apart. For performance reasons, this detection is skipped on validations that make use of conditional options, such as `:if` and `:unless`.
+By default all inputs are required. When the form object includes `ActiveModel::Validations`
+(which, for example, happens with Active Record models), fields are required only when there is `presence` validation.
+Otherwise, **Simple Form** will mark fields as optional. For performance reasons, this
+detection is skipped on validations that make use of conditional options, such as `:if` and `:unless`.
 
 And of course, the `required` property of any input can be overwritten as needed:
 
@@ -171,7 +217,14 @@ And of course, the `required` property of any input can be overwritten as needed
 <% end %>
 ```
 
-**SimpleForm** also lets you overwrite the default input type it creates:
+By default, **Simple Form** will look at the column type in the database and use an
+appropriate input for the column. For example, a column created with type
+`:text` in the database will use a `textarea` input by default. See the section
+[Available input types and defaults for each column
+type](https://github.com/heartcombo/simple_form#available-input-types-and-defaults-for-each-column-type)
+for a complete list of defaults.
+
+**Simple Form** also lets you overwrite the default input type it creates:
 
 ```erb
 <%= simple_form_for @user do |f| %>
@@ -184,11 +237,11 @@ And of course, the `required` property of any input can be overwritten as needed
 ```
 
 So instead of a checkbox for the *accepts* attribute, you'll have a pair of radio buttons with yes/no
-labels and a text area instead of a text field for the description. You can also render boolean
+labels and a textarea instead of a text field for the description. You can also render boolean
 attributes using `as: :select` to show a dropdown.
 
-It is also possible to give the `:disabled` option to **SimpleForm**, and it'll automatically mark
-the wrapper as disabled with a css class, so you can style labels, hints and other components inside
+It is also possible to give the `:disabled` option to **Simple Form**, and it'll automatically mark
+the wrapper as disabled with a CSS class, so you can style labels, hints and other components inside
 the wrapper as well:
 
 ```erb
@@ -198,18 +251,30 @@ the wrapper as well:
 <% end %>
 ```
 
-**SimpleForm** accepts same options as their corresponding input type helper in Rails:
+**Simple Form** inputs accept the same options as their corresponding input type helper in Rails:
 
 ```erb
 <%= simple_form_for @user do |f| %>
   <%= f.input :date_of_birth, as: :date, start_year: Date.today.year - 90,
                               end_year: Date.today.year - 12, discard_day: true,
                               order: [:month, :year] %>
+  <%= f.input :accepts, as: :boolean, checked_value: 'positive', unchecked_value: 'negative' %>
   <%= f.button :submit %>
 <% end %>
 ```
 
-**SimpleForm** also allows you to use label, hint, input_field, error and full_error helpers
+By default, **Simple Form** generates a hidden field to handle the un-checked case for boolean fields.
+Passing `unchecked_value: false` in the options for boolean fields will cause this hidden field to be omitted,
+following the convention in Rails. You can also specify `include_hidden: false` to skip the hidden field:
+
+```erb
+<%= simple_form_for @user do |f| %>
+  <%= f.input :just_the_checked_case, as: :boolean, include_hidden: false %>
+  <%= f.button :submit %>
+<% end %>
+```
+
+**Simple Form** also allows you to use label, hint, input_field, error and full_error helpers
 (please take a look at the rdocs for each method for more info):
 
 ```erb
@@ -227,7 +292,8 @@ Any extra option passed to these methods will be rendered as html option.
 
 ### Stripping away all wrapper divs
 
-**SimpleForm** also allows you to strip away all the div wrappers around the `<input>` field that is generated with the usual `f.input`.
+**Simple Form** also allows you to strip away all the div wrappers around the `<input>` field that is
+generated with the usual `f.input`.
 The easiest way to achieve this is to use `f.input_field`.
 
 Example:
@@ -235,17 +301,42 @@ Example:
 ```ruby
 simple_form_for @user do |f|
   f.input_field :name
+  f.input_field :remember_me, as: :boolean
 end
 ```
 
-Produces:
-
 ```html
-<input class="string required" id="user_name" maxlength="100"
-   name="user[name]" size="100" type="text" value="Carlos" />
+<form>
+  ...
+  <input class="string required" id="user_name" maxlength="255" name="user[name]" size="255" type="text">
+  <input name="user[remember_me]" type="hidden" value="0">
+  <label class="checkbox">
+    <input class="boolean optional" id="user_published" name="user[remember_me]" type="checkbox" value="1">
+  </label>
+</form>
 ```
 
-To view the actual RDocs for this, check them out here - http://rubydoc.info/github/plataformatec/simple_form/master/SimpleForm/FormBuilder:input_field
+For check boxes and radio buttons you can remove the label changing `boolean_style` from default value `:nested` to `:inline`.
+
+Example:
+
+```ruby
+simple_form_for @user do |f|
+  f.input_field :name
+  f.input_field :remember_me, as: :boolean, boolean_style: :inline
+end
+```
+
+```html
+<form>
+  ...
+  <input class="string required" id="user_name" maxlength="255" name="user[name]" size="255" type="text">
+  <input name="user[remember_me]" type="hidden" value="0">
+  <input class="boolean optional" id="user_remember_me" name="user[remember_me]" type="checkbox" value="1">
+</form>
+```
+
+To view the actual RDocs for this, check them out here - https://rubydoc.info/github/heartcombo/simple_form/main/SimpleForm/FormBuilder:input_field
 
 ### Collections
 
@@ -262,24 +353,37 @@ overriding the `:collection` option:
 
 Collections can be arrays or ranges, and when a `:collection` is given the `:select` input will be
 rendered by default, so we don't need to pass the `as: :select` option. Other types of collection
-are `:radio_buttons` and `:check_boxes`. Those are added by **SimpleForm** to Rails set of form
-helpers (read Extra Helpers session below for more information).
+are `:radio_buttons` and `:check_boxes`. Those are added by **Simple Form** to Rails set of form
+helpers (read Extra Helpers section below for more information).
 
 Collection inputs accept two other options beside collections:
 
-* _label_method_ => the label method to be applied to the collection to retrieve the label (use this
+* *label_method* => the label method to be applied to the collection to retrieve the label (use this
   instead of the `text_method` option in `collection_select`)
 
-* _value_method_ => the value method to be applied to the collection to retrieve the value
+* *value_method* => the value method to be applied to the collection to retrieve the value
 
 Those methods are useful to manipulate the given collection. Both of these options also accept
 lambda/procs in case you want to calculate the value or label in a special way eg. custom
-translation. All other options given are sent straight to the underlying helper. For example, you
-can give prompt as:
+translation. You can also define a `to_label` method on your model as **Simple Form** will search for
+and use `:to_label` as a `:label_method` first if it is found.
+
+By default, **Simple Form** will use the first item from an array as the label and the second one as the value.
+If you want to change this behavior you must make it explicit, like this:
+
+```erb
+<%= simple_form_for @user do |f| %>
+  <%= f.input :gender, as: :radio_buttons, collection: [['0', 'female'], ['1', 'male']], label_method: :second, value_method: :first %>
+<% end %>
+```
+
+All other options given are sent straight to the underlying Rails helper(s): [`collection_select`](https://api.rubyonrails.org/classes/ActionView/Helpers/FormOptionsHelper.html#method-i-collection_select), [`collection_check_boxes`](https://api.rubyonrails.org/classes/ActionView/Helpers/FormOptionsHelper.html#method-i-collection_check_boxes), [`collection_radio_buttons`](https://api.rubyonrails.org/classes/ActionView/Helpers/FormOptionsHelper.html#method-i-collection_radio_buttons). For example, you can pass `prompt` and `selected` as:
 
 ```ruby
-f.input :age, collection: 18..60, prompt: "Select your age"
+f.input :age, collection: 18..60, prompt: "Select your age", selected: 21
 ```
+
+It may also be useful to explicitly pass a value to the optional `:selected` like above, especially if passing a collection of nested objects.
 
 It is also possible to create grouped collection selects, that will use the html *optgroup* tags, like this:
 
@@ -290,24 +394,24 @@ f.input :country_id, collection: @continents, as: :grouped_select, group_method:
 Grouped collection inputs accept the same `:label_method` and `:value_method` options, which will be
 used to retrieve label/value attributes for the `option` tags. Besides that, you can give:
 
-* _group_method_ => the method to be called on the given collection to generate the options for
+* *group_method* => the method to be called on the given collection to generate the options for
   each group (required)
 
-* _group_label_method_ => the label method to be applied on the given collection to retrieve the label
-  for the _optgroup_ (**SimpleForm** will attempt to guess the best one the same way it does with
+* *group_label_method* => the label method to be applied on the given collection to retrieve the label
+  for the _optgroup_ (**Simple Form** will attempt to guess the best one the same way it does with
   `:label_method`)
 
 ### Priority
 
-**SimpleForm** also supports `:time_zone` and `:country`. When using such helpers, you can give
-`:priority` as option to select which time zones and/or countries should be given higher priority:
+**Simple Form** also supports `:time_zone` and `:country`. When using such helpers, you can give
+`:priority` as an option to select which time zones and/or countries should be given higher priority:
 
 ```ruby
 f.input :residence_country, priority: [ "Brazil" ]
 f.input :time_zone, priority: /US/
 ```
 
-Those values can also be configured with a default value to be used site use through the
+Those values can also be configured with a default value to be used on the site through the
 `SimpleForm.country_priority` and `SimpleForm.time_zone_priority` helpers.
 
 Note: While using `country_select` if you want to restrict to only a subset of countries for a specific
@@ -319,8 +423,8 @@ f.input :shipping_country, priority: [ "Brazil" ], collection: [ "Australia", "B
 
 ### Associations
 
-To deal with associations, **SimpleForm** can generate select inputs, a series of radios buttons or check boxes.
-Lets see how it works: imagine you have a user model that belongs to a company and has_and_belongs_to_many
+To deal with associations, **Simple Form** can generate select inputs, a series of radios buttons or checkboxes.
+Lets see how it works: imagine you have a user model that belongs to a company and `has_and_belongs_to_many`
 roles. The structure would be something like:
 
 ```ruby
@@ -351,7 +455,7 @@ Now we have the user form:
 
 Simple enough, right? This is going to render a `:select` input for choosing the `:company`, and another
 `:select` input with `:multiple` option for the `:roles`. You can, of course, change it to use radio
-buttons and check boxes as well:
+buttons and checkboxes as well:
 
 ```ruby
 f.association :company, as: :radio_buttons
@@ -363,7 +467,7 @@ The association helper just invokes `input` under the hood, so all options avail
 the collection by hand, all together with the prompt:
 
 ```ruby
-f.association :company, collection: Company.active.all(order: 'name'), prompt: "Choose a Company"
+f.association :company, collection: Company.active.order(:name), prompt: "Choose a Company"
 ```
 
 In case you want to declare different labels and values:
@@ -372,11 +476,12 @@ In case you want to declare different labels and values:
 f.association :company, label_method: :company_name, value_method: :id, include_blank: false
 ```
 
-Please note that the association helper is currently only tested with Active Record. It currently does not work well with Mongoid and depending on the ORM you're using your mileage may vary.
+Please note that the association helper is currently only tested with Active Record. It currently
+does not work well with Mongoid and depending on the ORM you're using your mileage may vary.
 
 ### Buttons
 
-All web forms need buttons, right? **SimpleForm** wraps them in the DSL, acting like a proxy:
+All web forms need buttons, right? **Simple Form** wraps them in the DSL, acting like a proxy:
 
 ```erb
 <%= simple_form_for @user do |f| %>
@@ -387,9 +492,25 @@ All web forms need buttons, right? **SimpleForm** wraps them in the DSL, acting 
 
 The above will simply call submit. You choose to use it or not, it's just a question of taste.
 
+The button method also accepts optional parameters, that are delegated to the underlying submit call:
+
+```erb
+<%= f.button :submit, "Custom Button Text", class: "my-button" %>
+```
+
+To create a `<button>` element, use the following syntax:
+
+```erb
+<%= f.button :button, "Custom Button Text" %>
+
+<%= f.button :button do %>
+  Custom Button Text
+<% end %>
+```
+
 ### Wrapping Rails Form Helpers
 
-Say you wanted to use a rails form helper but still wrap it in **SimpleForm** goodness? You can, by
+Say you wanted to use a rails form helper but still wrap it in **Simple Form** goodness? You can, by
 calling input with a block like so:
 
 ```erb
@@ -403,12 +524,12 @@ hash of additional attributes for each option.
 
 ### Extra helpers
 
-**SimpleForm** also comes with some extra helpers you can use inside rails default forms without relying
+**Simple Form** also comes with some extra helpers you can use inside rails default forms without relying
 on `simple_form_for` helper. They are listed below.
 
 #### Simple Fields For
 
-Wrapper to use **SimpleForm** inside a default rails form. It works in the same way that the `field_for`
+Wrapper to use **Simple Form** inside a default rails form. It works in the same way that the `fields_for`
 Rails helper, but change the builder to use the `SimpleForm::FormBuilder`.
 
 ```ruby
@@ -420,14 +541,13 @@ form_for @user do |f|
 end
 ```
 
-
 #### Collection Radio Buttons
 
 Creates a collection of radio inputs with labels associated (same API as `collection_select`):
 
 ```ruby
 form_for @user do |f|
-  f.collection_radio_buttons :options, [[true, 'Yes'] ,[false, 'No']], :first, :last
+  f.collection_radio_buttons :options, [[true, 'Yes'], [false, 'No']], :first, :last
 end
 ```
 
@@ -440,11 +560,11 @@ end
 
 #### Collection Check Boxes
 
-Creates a collection of check boxes with labels associated (same API as `collection_select`):
+Creates a collection of checkboxes with labels associated (same API as `collection_select`):
 
 ```ruby
 form_for @user do |f|
-  f.collection_check_boxes :options, [[true, 'Yes'] ,[false, 'No']], :first, :last
+  f.collection_check_boxes :options, [[true, 'Yes'], [false, 'No']], :first, :last
 end
 ```
 
@@ -465,47 +585,63 @@ form_for @user do |f|
 end
 ```
 
-## Mappings/Inputs available
+To add a CSS class to the label item, you can use the `item_label_class` option:
 
-**SimpleForm** comes with a lot of default mappings:
-
-```text
-Mapping               Input                         Column Type
-
-boolean               check box                     boolean
-string                text field                    string
-email                 email field                   string with name matching "email"
-url                   url field                     string with name matching "url"
-tel                   tel field                     string with name matching "phone"
-password              password field                string with name matching "password"
-search                search                        -
-text                  text area                     text
-file                  file field                    string, responding to file methods
-hidden                hidden field                  -
-integer               number field                  integer
-float                 number field                  float
-decimal               number field                  decimal
-range                 range field                   -
-datetime              datetime select               datetime/timestamp
-date                  date select                   date
-time                  time select                   time
-select                collection select             belongs_to/has_many/has_and_belongs_to_many associations
-radio_buttons         collection radio buttons      belongs_to
-check_boxes           collection check boxes        has_many/has_and_belongs_to_many associations
-country               country select                string with name matching "country"
-time_zone             time zone select              string with name matching "time_zone"
+```ruby
+f.collection_check_boxes :role_ids, Role.all, :id, :name, item_label_class: 'my-custom-class'
 ```
+
+## Available input types and defaults for each column type
+
+The following table shows the html element you will get for each attribute
+according to its database definition. These defaults can be changed by
+specifying the helper method in the column `Mapping` as the `as:` option.
+
+Mapping         | Generated HTML Element               | Database Column Type
+--------------- |--------------------------------------|---------------------
+`boolean`       | `input[type=checkbox]`               | `boolean`
+`string`        | `input[type=text]`                   | `string`
+`citext`        | `input[type=text]`                   | `citext`
+`email`         | `input[type=email]`                  | `string` with `name =~ /email/`
+`url`           | `input[type=url]`                    | `string` with `name =~ /url/`
+`tel`           | `input[type=tel]`                    | `string` with `name =~ /phone/`
+`password`      | `input[type=password]`               | `string` with `name =~ /password/`
+`search`        | `input[type=search]`                 | -
+`uuid`          | `input[type=text]`                   | `uuid`
+`color`         | `input[type=color]`                  | `string`
+`text`          | `textarea`                           | `text`
+`hstore`        | `textarea`                           | `hstore`
+`json`          | `textarea`                           | `json`
+`jsonb`         | `textarea`                           | `jsonb`
+`file`          | `input[type=file]`                   | `string` responding to file methods
+`hidden`        | `input[type=hidden]`                 | -
+`integer`       | `input[type=number]`                 | `integer`
+`float`         | `input[type=number]`                 | `float`
+`decimal`       | `input[type=number]`                 | `decimal`
+`range`         | `input[type=range]`                  | -
+`datetime`      | `datetime select`                    | `datetime/timestamp`
+`date`          | `date select`                        | `date`
+`time`          | `time select`                        | `time`
+`weekday`       | `select` (weekdays as options)       | -
+`select`        | `select`                             | `belongs_to`/`has_many`/`has_and_belongs_to_many` associations
+`radio_buttons` | collection of `input[type=radio]`    | `belongs_to` associations
+`check_boxes`   | collection of `input[type=checkbox]` | `has_many`/`has_and_belongs_to_many` associations
+`country`       | `select` (countries as options)      | `string` with `name =~ /country/`
+`time_zone`     | `select` (timezones as options)      | `string` with `name =~ /time_zone/`
+`rich_text_area`| `trix-editor`                        | -
 
 ## Custom inputs
 
-It is very easy to add custom inputs to **SimpleForm**. For instance, if you want to add a custom input
+It is very easy to add custom inputs to **Simple Form**. For instance, if you want to add a custom input
 that extends the string one, you just need to add this file:
 
 ```ruby
 # app/inputs/currency_input.rb
 class CurrencyInput < SimpleForm::Inputs::Base
-  def input
-    "$ #{@builder.text_field(attribute_name, input_html_options)}".html_safe
+  def input(wrapper_options)
+    merged_input_options = merge_wrapper_options(input_html_options, wrapper_options)
+
+    "$ #{@builder.text_field(attribute_name, merged_input_options)}".html_safe
   end
 end
 ```
@@ -515,14 +651,15 @@ And use it in your views:
 ```ruby
 f.input :money, as: :currency
 ```
+Note, you may have to create the `app/inputs/` directory and restart your webserver.
 
-You can also redefine existing **SimpleForm** inputs by creating a new class with the same name. For
+You can also redefine existing **Simple Form** inputs by creating a new class with the same name. For
 instance, if you want to wrap date/time/datetime in a div, you can do:
 
 ```ruby
 # app/inputs/date_time_input.rb
 class DateTimeInput < SimpleForm::Inputs::DateTimeInput
-  def input
+  def input(wrapper_options)
     template.content_tag(:div, super)
   end
 end
@@ -539,9 +676,31 @@ class CollectionSelectInput < SimpleForm::Inputs::CollectionSelectInput
 end
 ```
 
+If needed, you can namespace your custom inputs in a module and tell **Simple Form** to look for
+their definitions in this module. This can avoid conflicts with other form libraries (like Formtastic) that look up
+the global context to find inputs definition too.
+
+```ruby
+# app/inputs/custom_inputs/numeric_input
+module CustomInputs
+  class NumericInput < SimpleForm::Inputs::NumericInput
+    def input_html_classes
+      super.push('no-spinner')
+    end
+  end
+end
+```
+
+And in the **SimpleForm** initializer :
+
+```ruby
+# config/simple_form.rb
+config.custom_inputs_namespaces << "CustomInputs"
+```
+
 ## Custom form builder
 
-You can create a custom form builder that uses **SimpleForm**.
+You can create a custom form builder that uses **Simple Form**.
 
 Create a helper method that calls `simple_form_for` with a custom builder:
 
@@ -557,15 +716,14 @@ Create a form builder class that inherits from `SimpleForm::FormBuilder`.
 ```ruby
 class CustomFormBuilder < SimpleForm::FormBuilder
   def input(attribute_name, options = {}, &block)
-    options[:input_html].merge! class: 'custom'
-    super
+    super(attribute_name, options.merge(label: false), &block)
   end
 end
 ```
 
 ## I18n
 
-**SimpleForm** uses all power of I18n API to lookup labels, hints and placeholders. To customize your
+**Simple Form** uses all power of I18n API to lookup labels, hints, prompts and placeholders. To customize your
 forms you can create a locale file like this:
 
 ```yaml
@@ -583,12 +741,18 @@ en:
       user:
         username: 'Your username'
         password: '****'
+    include_blanks:
+      user:
+        age: 'Rather not say'
+    prompts:
+      user:
+        role: 'Select your role'
 ```
 
 And your forms will use this information to render the components for you.
 
-**SimpleForm** also lets you be more specific, separating lookups through actions for labels, hints and
-placeholders. Let's say you want a different label for new and edit actions, the locale file would
+**Simple Form** also lets you be more specific, separating lookups through actions.
+Let's say you want a different label for new and edit actions, the locale file would
 be something like:
 
 ```yaml
@@ -603,7 +767,7 @@ en:
           password: 'Change password'
 ```
 
-This way **SimpleForm** will figure out the right translation for you, based on the action being
+This way **Simple Form** will figure out the right translation for you, based on the action being
 rendered. And to be a little bit DRYer with your locale file, you can specify defaults for all
 models under the 'defaults' key:
 
@@ -626,37 +790,43 @@ en:
         password: '****'
 ```
 
-**SimpleForm** will always look for a default attribute translation under the "defaults" key if no
-specific is found inside the model key. Note that this syntax is different from 1.x. To migrate to
-the new syntax, just move "labels.#{attribute}" to "labels.defaults.#{attribute}".
+**Simple Form** will always look for a default attribute translation under the "defaults" key if no
+specific is found inside the model key.
 
-In addition, **SimpleForm** will fallback to default human_attribute_name from Rails when no other
+In addition, **Simple Form** will fallback to default `human_attribute_name` from Rails when no other
 translation is found for labels. Finally, you can also overwrite any label, hint or placeholder
 inside your view, just by passing the option manually. This way the I18n lookup will be skipped.
 
-**SimpleForm** also has support for translating options in collection helpers. For instance, given a
-User with a `:gender` attribute, you might want to create a select box showing translated labels
-that would post either `male` or `female` as value. With **SimpleForm** you could create an input
+For `:prompt` and `:include_blank` the I18n lookup is optional and to enable it is necessary to pass
+`:translate` as value.
+
+```ruby
+f.input :role, prompt: :translate
+```
+
+**Simple Form** also has support for translating options in collection helpers. For instance, given a
+User with a `:role` attribute, you might want to create a select box showing translated labels
+that would post either `:admin` or `:editor` as value. With **Simple Form** you could create an input
 like this:
 
 ```ruby
-f.input :gender, collection: [:male, :female]
+f.input :role, collection: [:admin, :editor]
 ```
 
-And **SimpleForm** will try a lookup like this in your locale file, to find the right labels to show:
+And **Simple Form** will try a lookup like this in your locale file, to find the right labels to show:
 
 ```yaml
 en:
   simple_form:
     options:
       user:
-        gender:
-          male: 'Male'
-          female: 'Female'
+        role:
+          admin: 'Administrator'
+          editor: 'Editor'
 ```
 
 You can also use the `defaults` key as you would do with labels, hints and placeholders. It is
-important to notice that **SimpleForm** will only do the lookup for options if you give a collection
+important to notice that **Simple Form** will only do the lookup for options if you give a collection
 composed of symbols only. This is to avoid constant lookups to I18n.
 
 It's also possible to translate buttons, using Rails' built-in I18n support:
@@ -699,27 +869,44 @@ en:
             name: Name
 ```
 
-This difference exists because **SimpleForm** relies on `object_name` provided by Rails'
+This difference exists because **Simple Form** relies on `object_name` provided by Rails'
 FormBuilder to determine the translation path for a given object instead of `i18n_key` from the
 object itself. Thus, similarly, if a form for an `Admin::User` object is defined by calling
-`simple_form_for @admin_user, as: :some_user`, **SimpleForm** will look for translations
+`simple_form_for @admin_user, as: :some_user`, **Simple Form** will look for translations
 under `some_user` instead of `admin_user`.
+
+When translating `simple_fields_for` attributes be sure to use the same name you pass to it, e.g. `simple_fields_for :posts` should be placed under `posts` not `post`:
+
+```yaml
+en:
+  simple_form:
+    labels:
+      posts:
+        title: 'Post title'
+    hints:
+      posts:
+        title: 'A good title'
+    placeholders:
+      posts:
+        title: 'Once upon a time...'
+```
 
 ## Configuration
 
-**SimpleForm** has several configuration options. You can read and change them in the initializer
-created by **SimpleForm**, so if you haven't executed the command below yet, please do:
+**Simple Form** has several configuration options. You can read and change them in the initializer
+created by **Simple Form**, so if you haven't executed the command below yet, please do:
 
 `rails generate simple_form:install`
 
 ### The wrappers API
 
-With **SimpleForm** you can configure how your components will be rendered using the wrappers API.
+With **Simple Form** you can configure how your components will be rendered using the wrappers API.
 The syntax looks like this:
 
 ```ruby
 config.wrappers tag: :div, class: :input,
-                error_class: :field_with_errors do |b|
+                error_class: :field_with_errors,
+                valid_class: :field_without_errors do |b|
 
   # Form extensions
   b.use :html5
@@ -735,7 +922,8 @@ config.wrappers tag: :div, class: :input,
 end
 ```
 
-The _Form components_ will generate the form tags like labels, inputs, hints or errors contents. The available components are:
+The _Form components_ will generate the form tags like labels, inputs, hints or errors contents.
+The available components are:
 
 ```ruby
 :label         # The <label> tag alone
@@ -763,13 +951,24 @@ end
 
 this will wrap the hint and error components within a `div` tag using the class `'separator'`.
 
+You can customize _Form components_ passing options to them:
+
+```ruby
+config.wrappers do |b|
+  b.use :label_input, class: 'label-input-class', error_class: 'is-invalid', valid_class: 'is-valid'
+end
+```
+
+This sets the input and label classes to `'label-input-class'` and will set the class `'is-invalid'`
+if the input has errors and `'is-valid'` if the input is valid.
+
 If you want to customize the custom _Form components_ on demand you can give it a name like this:
 
 ```ruby
 config.wrappers do |b|
   b.use :placeholder
   b.use :label_input
-  b.wrapper :my_wrapper, tag: :div, class: 'separator' do |component|
+  b.wrapper :my_wrapper, tag: :div, class: 'separator', html: { id: 'my_wrapper_id' } do |component|
     component.use :hint,  wrap_with: { tag: :span, class: :hint }
     component.use :error, wrap_with: { tag: :span, class: :error }
   end
@@ -813,7 +1012,7 @@ simple_form_for @user do |f|
 end
 ```
 
-**SimpleForm** also allows you to use optional elements. For instance, let's suppose you want to use
+**Simple Form** also allows you to use optional elements. For instance, let's suppose you want to use
 hints or placeholders, but you don't want them to be generated automatically. You can set their
 default values to `false` or use the `optional` method. Is preferable to use the `optional` syntax:
 
@@ -831,9 +1030,104 @@ end
 By setting it as `optional`, a hint will only be generated when `hint: true` is explicitly used.
 The same for placeholder.
 
+It is also possible to give the option `:unless_blank` to the wrapper if you want to render it only
+when the content is present.
+
+```ruby
+  b.wrapper tag: :span, class: 'hint', unless_blank: true do |component|
+    component.optional :hint
+  end
+```
+
+## Custom Components
+
+When you use custom wrappers, you might also be looking for a way to add custom components to your
+wrapper. The default components are:
+
+```ruby
+:label         # The <label> tag alone
+:input         # The <input> tag alone
+:label_input   # The <label> and the <input> tags
+:hint          # The hint for the input
+:error         # The error for the input
+```
+
+A custom component might be interesting for you if your views look something like this:
+
+```erb
+<%= simple_form_for @blog do |f| %>
+  <div class="row">
+    <div class="span1 number">
+      1
+    </div>
+    <div class="span8">
+      <%= f.input :title %>
+    </div>
+  </div>
+  <div class="row">
+    <div class="span1 number">
+      2
+    </div>
+    <div class="span8">
+      <%= f.input :body, as: :text %>
+    </div>
+  </div>
+<% end %>
+```
+
+A cleaner method to create your views would be:
+
+```erb
+<%= simple_form_for @blog, wrapper: :with_numbers do |f| %>
+  <%= f.input :title, number: 1 %>
+  <%= f.input :body, as: :text, number: 2 %>
+<% end %>
+```
+
+To use the number option on the input, first, tells to Simple Form the place where the components
+will be:
+
+``` ruby
+# config/initializers/simple_form.rb
+Dir[Rails.root.join('lib/components/**/*.rb')].each { |f| require f }
+```
+
+Create a new component within the path specified above:
+
+```ruby
+# lib/components/numbers_component.rb
+module NumbersComponent
+  # To avoid deprecation warning, you need to make the wrapper_options explicit
+  # even when they won't be used.
+  def number(wrapper_options = nil)
+    @number ||= begin
+      options[:number].to_s.html_safe if options[:number].present?
+    end
+  end
+end
+
+SimpleForm.include_component(NumbersComponent)
+```
+
+Finally, add a new wrapper to the config/initializers/simple_form.rb file:
+
+```ruby
+config.wrappers :with_numbers, tag: 'div', class: 'row', error_class: 'error' do |b|
+  b.use :html5
+  b.use :number, wrap_with: { tag: 'div', class: 'span1 number' }
+  b.wrapper tag: 'div', class: 'span8' do |ba|
+    ba.use :placeholder
+    ba.use :label
+    ba.use :input
+    ba.use :error, wrap_with: { tag: 'span', class: 'help-inline' }
+    ba.use :hint,  wrap_with: { tag: 'p', class: 'help-block' }
+  end
+end
+```
+
 ## HTML 5 Notice
 
-By default, **SimpleForm** will generate input field types and attributes that are supported in HTML5,
+By default, **Simple Form** will generate input field types and attributes that are supported in HTML5,
 but are considered invalid HTML for older document types such as HTML4 or XHTML1.0. The HTML5
 extensions include the new field types such as email, number, search, url, tel, and the new
 attributes such as required, autofocus, maxlength, min, max, step.
@@ -843,10 +1137,25 @@ required attribute to force a value into an input and will prevent form submissi
 Depending on the design of the application this may or may not be desired. In many cases it can
 break existing UI's.
 
-It is possible to disable all HTML 5 extensions in **SimpleForm** with the following configuration:
+It is possible to disable all HTML 5 extensions in **Simple Form** by removing the `html5`
+component from the wrapper used to render the inputs.
+
+For example, change:
 
 ```ruby
-SimpleForm.html5 = false # default is true
+config.wrappers tag: :div do |b|
+  b.use :html5
+
+  b.use :label_input
+end
+```
+
+To:
+
+```ruby
+config.wrappers tag: :div do |b|
+  b.use :label_input
+end
 ```
 
 If you want to have all other HTML 5 features, such as the new field types, you can disable only
@@ -863,50 +1172,162 @@ help you to use some generic javascript validation.
 You can also add `novalidate` to a specific form by setting the option on the form itself:
 
 ```erb
-<%= simple_form_for(resource, html: {novalidate: true}) do |form| %>
+<%= simple_form_for(resource, html: { novalidate: true }) do |form| %>
 ```
 
-Please notice that any of the configurations above will disable the `placeholder` component,
-which is an HTML 5 feature. We believe most of the newest browsers are handling this attribute fine,
-and if they aren't, any plugin you use would take of using the placeholder attribute to do it.
-However, you can disable it if you want, by removing the placeholder component from the components
-list in **SimpleForm** configuration file.
+Please notice that none of the configurations above will disable the `placeholder` component,
+which is an HTML 5 feature. We believe most of the newest browsers are handling this attribute
+just fine, and if they aren't, any plugin you use would take care of applying the placeholder.
+In any case, you can disable it if you really want to, by removing the placeholder component
+from the components list in the **Simple Form** configuration file.
+
+HTML 5 date / time inputs are not generated by **Simple Form** by default, so using `date`,
+`time` or `datetime` will all generate select boxes using normal Rails helpers. We believe
+browsers are not totally ready for these yet, but you can easily opt-in on a per-input basis
+by passing the html5 option:
+
+```erb
+<%= f.input :expires_at, as: :date, html5: true %>
+```
+
+## Using non Active Record objects
+
+There are few ways to build forms with objects that don't inherit from Active Record, as
+follows:
+
+You can include the module `ActiveModel::Model`.
+
+```ruby
+class User
+  include ActiveModel::Model
+
+  attr_accessor :id, :name
+end
+```
+
+If you are using Presenters or Decorators that inherit from `SimpleDelegator` you can delegate
+it to the model.
+
+```ruby
+class UserPresenter < SimpleDelegator
+  # Without that, Simple Form will consider the user model as the object.
+  def to_model
+    self
+  end
+end
+```
+
+You can define all methods required by the helpers.
+
+```ruby
+class User
+  extend ActiveModel::Naming
+
+  attr_accessor :id, :name
+
+  def to_model
+    self
+  end
+
+  def to_key
+    id
+  end
+
+  def persisted?
+    false
+  end
+end
+```
+
+To have SimpleForm infer the attributes' types, you can provide
+`#has_attribute?` and `#type_for_attribute` methods.
+The later should return an object that responds to `#type`
+with the attribute type. This is useful for generating
+the correct input types (eg: checkboxes for booleans).
+
+```ruby
+class User < Struct.new(:id, :name, :age, :registered)
+  def to_model
+    self
+  end
+
+  def model_name
+    OpenStruct.new(param_key: "user")
+  end
+
+  def to_key
+    id
+  end
+
+  def persisted?
+    id.present?
+  end
+
+  def has_attribute?(attr_name)
+    %w(id name age registered).include?(attr_name.to_s)
+  end
+
+  def type_for_attribute(attr_name)
+    case attr_name.to_s
+      when "id" then OpenStruct.new(type: :integer)
+      when "name" then OpenStruct.new(type: :string)
+      when "age" then OpenStruct.new(type: :integer)
+      when "registered" then OpenStruct.new(type: :boolean)
+    end
+  end
+end
+```
+
+If your object doesn't implement those methods, you must make explicit it when you are
+building the form
+
+```ruby
+class User
+  attr_accessor :id, :name
+
+  # The only method required to use the f.submit helper.
+  def persisted?
+    false
+  end
+end
+```
+
+```erb
+<%= simple_form_for(@user, as: :user, method: :post, url: users_path) do |f| %>
+  <%= f.input :name %>
+  <%= f.submit 'New user' %>
+<% end %>
+```
 
 ## Information
 
-### Google Group
-
-If you have any questions, comments, or concerns please use the Google Group instead of the GitHub
-Issues tracker:
-
-http://groups.google.com/group/plataformatec-simpleform
-
 ### RDocs
 
-You can view the **SimpleForm** documentation in RDoc format here:
+You can view the **Simple Form** documentation in RDoc format here:
 
-http://rubydoc.info/github/plataformatec/simple_form/master/frames
+https://rubydoc.info/github/heartcombo/simple_form/main/frames
 
-If you need to use **SimpleForm** with Rails 2.3, you can always run `gem server` from the command line
-after you install the gem to access the old documentation.
+### Supported Ruby / Rails versions
+
+We intend to maintain support for all Ruby / Rails versions that haven't reached end-of-life.
+
+For more information about specific versions please check [Ruby](https://www.ruby-lang.org/en/downloads/branches/)
+and [Rails](https://guides.rubyonrails.org/maintenance_policy.html) maintenance policies, and our test matrix.
 
 ### Bug reports
 
 If you discover any bugs, feel free to create an issue on GitHub. Please add as much information as
-possible to help us fixing the possible bug. We also encourage you to help even more by forking and
+possible to help us in fixing the potential bug. We also encourage you to help even more by forking and
 sending us a pull request.
 
-https://github.com/plataformatec/simple_form/issues
+https://github.com/heartcombo/simple_form/issues
 
-## Maintainers
-
-* José Valim (https://github.com/josevalim)
-* Carlos Antonio da Silva (https://github.com/carlosantoniodasilva)
-* Rafael Mendonça França (https://github.com/rafaelfranca)
-* Vasiliy Ermolovich (https://github.com/nashby)
+If you have discovered a security related bug, please do NOT use the GitHub issue tracker. Send an e-mail to heartcombo.oss@gmail.com.
 
 ## License
 
-MIT License. Copyright 2009-2013 Plataformatec. http://plataformatec.com.br
+MIT License.
+Copyright 2020-CURRENT Rafael França, Carlos Antonio da Silva.
+Copyright 2009-2019 Plataformatec.
 
-You are not granted rights or licenses to the trademarks of the Plataformatec, including without limitation the Simple Form name or logo.
+The Simple Form logo is licensed under [Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International License](https://creativecommons.org/licenses/by-nc-nd/4.0/).

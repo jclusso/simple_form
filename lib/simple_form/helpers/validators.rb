@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module SimpleForm
   module Helpers
     module Validators
@@ -24,7 +25,7 @@ module SimpleForm
       end
 
       def action_validator_match?(validator)
-        return true if !validator.options.include?(:on)
+        return true unless validator.options.include?(:on)
 
         case validator.options[:on]
         when :save
@@ -38,6 +39,27 @@ module SimpleForm
 
       def find_validator(kind)
         attribute_validators.find { |v| v.kind == kind } if has_validators?
+      end
+
+      # Implements `ActiveModel::Validations::ResolveValue`, introduced by Rails 7.1.
+      # https://github.com/rails/rails/blob/v7.1.0/activemodel/lib/active_model/validations/resolve_value.rb
+      def resolve_validator_value(value)
+        case value
+        when Proc
+          if value.arity == 0
+            value.call
+          else
+            value.call(object)
+          end
+        when Symbol
+          object.send(value)
+        else
+          if value.respond_to?(:call)
+            value.call(object)
+          else
+            value
+          end
+        end
       end
     end
   end

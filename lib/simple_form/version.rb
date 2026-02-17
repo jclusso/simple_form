@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module SimpleForm
-  VERSION = "3.0.0.rc".freeze
+  VERSION = "5.4.1".freeze
 end

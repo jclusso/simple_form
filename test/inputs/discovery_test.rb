@@ -1,8 +1,9 @@
+# frozen_string_literal: true
 require 'test_helper'
 
 class DiscoveryTest < ActionView::TestCase
   # Setup new inputs and remove them after the test.
-  def discovery(value=false)
+  def discovery(value = false)
     swap SimpleForm, cache_discovery: value do
       begin
         load "support/discovery_inputs.rb"
@@ -12,12 +13,17 @@ class DiscoveryTest < ActionView::TestCase
         Object.send :remove_const, :StringInput
         Object.send :remove_const, :NumericInput
         Object.send :remove_const, :CustomizedInput
+        Object.send :remove_const, :DeprecatedInput
         Object.send :remove_const, :CollectionSelectInput
+        Object.send :remove_const, :FileInput
+        CustomInputs.send :remove_const, :CustomizedInput
+        CustomInputs.send :remove_const, :PasswordInput
+        CustomInputs.send :remove_const, :NumericInput
       end
     end
   end
 
-  test 'builder should not discover new inputs if cached' do
+  test 'builder does not discover new inputs if cached' do
     with_form_for @user, :name
     assert_select 'form input#user_name.string'
 
@@ -27,14 +33,14 @@ class DiscoveryTest < ActionView::TestCase
     end
   end
 
-  test 'builder should discover new inputs' do
+  test 'builder discovers new inputs' do
     discovery do
       with_form_for @user, :name, as: :customized
       assert_select 'form section input#user_name.string'
     end
   end
 
-  test 'builder should not discover new inputs if discovery is off' do
+  test 'builder does not discover new inputs if discovery is off' do
     with_form_for @user, :name
     assert_select 'form input#user_name.string'
 
@@ -46,17 +52,54 @@ class DiscoveryTest < ActionView::TestCase
     end
   end
 
-  test 'builder should discover new inputs from mappings if not cached' do
+  test 'builder discovers new inputs from mappings if not cached' do
     discovery do
       with_form_for @user, :name
       assert_select 'form section input#user_name.string'
     end
   end
 
-  test 'builder should discover new inputs from internal fallbacks if not cached' do
+  test 'builder discovers new inputs from internal fallbacks if not cached' do
     discovery do
       with_form_for @user, :age
       assert_select 'form section input#user_age.numeric.integer'
+    end
+  end
+
+  test 'builder discovers new mapped inputs from configured namespaces if not cached' do
+    discovery do
+      swap SimpleForm, custom_inputs_namespaces: ['CustomInputs'] do
+        with_form_for @user, :password
+        assert_select 'form input#user_password.password-custom-input'
+      end
+    end
+  end
+
+  test 'builder discovers new mapped inputs from configured namespaces before the ones from top level namespace' do
+    discovery do
+      swap SimpleForm, custom_inputs_namespaces: ['CustomInputs'] do
+        with_form_for @user, :age
+        assert_select 'form input#user_age.numeric-custom-input'
+      end
+    end
+  end
+
+  test 'builder discovers new custom inputs from configured namespace before the ones from top level namespace' do
+    discovery do
+      swap SimpleForm, custom_inputs_namespaces: ['CustomInputs'] do
+        with_form_for @user, :name, as: 'customized'
+        assert_select 'form input#user_name.customized-namespace-custom-input'
+      end
+    end
+  end
+
+  test 'raises error when configured namespace does not exists' do
+    discovery do
+      swap SimpleForm, custom_inputs_namespaces: ['InvalidNamespace'] do
+        assert_raise NameError do
+          with_form_for @user, :age
+        end
+      end
     end
   end
 
@@ -64,6 +107,36 @@ class DiscoveryTest < ActionView::TestCase
     discovery do
       with_form_for @user, :active, as: :select
       assert_select 'form select#user_active.select.chosen'
+    end
+  end
+
+  test 'does not duplicate the html classes giving a extra class' do
+    discovery do
+      swap SimpleForm, input_class: 'custom-default-input-class' do
+        with_form_for @user, :active, as: :select
+        assert_select 'form select#user_active.select' do
+          # Make sure class list contains 'chosen' only once.
+          assert_select ":match('class', ?)", /^(?!.*\bchosen\b.*\bchosen\b).*\bchosen\b.*$/
+        end
+      end
+    end
+  end
+
+  test 'new inputs can override the default input_html_classes' do
+    discovery do
+      with_form_for @user, :avatar, as: :file
+      assert_no_select 'form input[type=file]#user_avatar.file.file-upload'
+      assert_select 'form input[type=file]#user_avatar.file-upload'
+    end
+  end
+
+  test 'inputs method without wrapper_options are deprecated' do
+    discovery do
+      assert_deprecated('input method now accepts a `wrapper_options` argument.', SimpleForm.deprecator) do
+        with_form_for @user, :name, as: :deprecated
+      end
+
+      assert_select 'form section input#user_name.string'
     end
   end
 end

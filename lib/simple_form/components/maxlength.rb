@@ -1,8 +1,9 @@
+# frozen_string_literal: true
 module SimpleForm
   module Components
     # Needs to be enabled in order to do automatic lookups.
     module Maxlength
-      def maxlength
+      def maxlength(wrapper_options = nil)
         input_html_options[:maxlength] ||= maximum_length_from_validation || limit
         nil
       end
@@ -15,10 +16,7 @@ module SimpleForm
           maxlength
         else
           length_validator = find_length_validator
-
-          if length_validator && !has_tokenizer?(length_validator)
-            length_validator.options[:is] || length_validator.options[:maximum]
-          end
+          maximum_length_value_from(length_validator)
         end
       end
 
@@ -26,8 +24,11 @@ module SimpleForm
         find_validator(:length)
       end
 
-      def has_tokenizer?(length_validator)
-        length_validator.options[:tokenizer]
+      def maximum_length_value_from(length_validator)
+        if length_validator
+          value = length_validator.options[:is] || length_validator.options[:maximum]
+          resolve_validator_value(value)
+        end
       end
     end
   end

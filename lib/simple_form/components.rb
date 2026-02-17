@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module SimpleForm
   # Components are a special type of helpers that can work on their own.
   # For example, by using a component, it will automatically change the
@@ -15,6 +16,7 @@ module SimpleForm
     autoload :Labels
     autoload :MinMax
     autoload :Maxlength
+    autoload :Minlength
     autoload :Pattern
     autoload :Placeholders
     autoload :Readonly

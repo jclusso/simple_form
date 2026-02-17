@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module SimpleForm
   module Wrappers
     # `Root` is the root wrapper for all components. It is special cased to
@@ -17,7 +18,7 @@ module SimpleForm
 
       # Provide a fallback if name cannot be found.
       def find(name)
-        super || SimpleForm::Wrappers::Many.new(name, [name])
+        super || SimpleForm::Wrappers::Many.new(name, [Leaf.new(name)])
       end
 
       private
@@ -27,9 +28,15 @@ module SimpleForm
         css += SimpleForm.additional_classes_for(:wrapper) do
           input.additional_classes + [input.input_class]
         end
-        css << (options[:wrapper_error_class] || @defaults[:error_class]) if input.has_errors?
-        css << (options[:wrapper_hint_class] || @defaults[:hint_class]) if input.has_hint?
+        css << html_class(:error_class, options) { input.has_errors? }
+        css << html_class(:hint_class, options) { input.has_hint? }
+        css << html_class(:valid_class, options) { input.valid? }
         css.compact
+      end
+
+      def html_class(key, options)
+        css = (options[:"wrapper_#{key}"] || @defaults[key])
+        css if css && yield
       end
     end
   end

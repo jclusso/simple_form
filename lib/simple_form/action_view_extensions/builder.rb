@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module SimpleForm
   module ActionViewExtensions
     # A collection of methods required by simple_form but added to rails default form.
@@ -17,6 +18,7 @@ module SimpleForm
         options = args.extract_options!
         options[:wrapper] = self.options[:wrapper] if options[:wrapper].nil?
         options[:defaults] ||= self.options[:defaults]
+        options[:wrapper_mappings] ||= self.options[:wrapper_mappings]
 
         if self.class < ActionView::Helpers::FormBuilder
           options[:builder] ||= self.class

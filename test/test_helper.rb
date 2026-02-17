@@ -1,12 +1,13 @@
-require 'bundler/setup'
-
+# frozen_string_literal: true
 require 'minitest/autorun'
 
 require 'active_model'
 require 'action_controller'
 require 'action_view'
-require 'action_view/template'
 
+ActionView::RoutingUrlFor.include ActionDispatch::Routing::UrlFor
+
+require 'action_view/template'
 require 'action_view/test_case'
 
 module Rails
@@ -28,11 +29,19 @@ I18n.default_locale = :en
 
 require 'country_select'
 
-ActionDispatch::Assertions::NO_STRIP << "label"
+Rails::Dom::Testing::Assertions::SelectorAssertions::HTMLSelector::NO_STRIP << "label"
+
+if ActiveSupport::TestCase.respond_to?(:test_order=)
+  ActiveSupport::TestCase.test_order = :random
+end
+
+require "rails/test_unit/line_filtering"
 
 class ActionView::TestCase
   include MiscHelpers
   include SimpleForm::ActionViewExtensions::FormHelper
+
+  extend Rails::LineFiltering
 
   setup :set_controller
   setup :setup_users
@@ -43,8 +52,12 @@ class ActionView::TestCase
 
   def setup_users(extra_attributes = {})
     @user = User.build(extra_attributes)
+    @decorated_user = Decorator.new(@user)
 
     @validating_user = ValidatingUser.build({
+      name: 'Tester McTesterson',
+      username: 'mctesterson',
+      description: 'A test user of the most distinguished caliber',
       home_picture: 'Home picture',
       age: 19,
       amount: 15,
@@ -75,4 +88,5 @@ class ActionView::TestCase
   alias :validating_user_path :user_path
   alias :validating_users_path :user_path
   alias :other_validating_user_path :user_path
+  alias :user_with_attachment_path :user_path
 end

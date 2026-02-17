@@ -1,9 +1,12 @@
-require 'simple_form/i18n_cache'
+# frozen_string_literal: true
+require 'active_support/core_ext/string/output_safety'
+require 'action_view/helpers'
 
 module SimpleForm
   module Inputs
     class Base
-      extend I18nCache
+      include ERB::Util
+      include ActionView::Helpers::TranslationHelper
 
       include SimpleForm::Helpers::Autofocus
       include SimpleForm::Helpers::Disabled
@@ -16,6 +19,7 @@ module SimpleForm
       include SimpleForm::Components::HTML5
       include SimpleForm::Components::LabelInput
       include SimpleForm::Components::Maxlength
+      include SimpleForm::Components::Minlength
       include SimpleForm::Components::MinMax
       include SimpleForm::Components::Pattern
       include SimpleForm::Components::Placeholders
@@ -45,19 +49,19 @@ module SimpleForm
       enable :hint
 
       # Usually disabled, needs to be enabled explicitly passing true as option.
-      disable :maxlength, :placeholder, :pattern, :min_max
+      disable :maxlength, :minlength, :placeholder, :pattern, :min_max
 
       def initialize(builder, attribute_name, column, input_type, options = {})
         super
 
-        options             = options.dup
-        @builder            = builder
-        @attribute_name     = attribute_name
-        @column             = column
-        @input_type         = input_type
-        @reflection         = options.delete(:reflection)
-        @options            = options.reverse_merge!(self.class.default_options)
-        @required           = calculate_required
+        options         = options.dup
+        @builder        = builder
+        @attribute_name = attribute_name
+        @column         = column
+        @input_type     = input_type
+        @reflection     = options.delete(:reflection)
+        @options        = options.reverse_merge!(self.class.default_options)
+        @required       = calculate_required
 
         # Notice that html_options_for receives a reference to input_html_classes.
         # This means that classes added dynamically to input_html_classes will
@@ -65,6 +69,13 @@ module SimpleForm
         @html_classes = SimpleForm.additional_classes_for(:input) { additional_classes }
 
         @input_html_classes = @html_classes.dup
+
+        input_html_classes = self.input_html_classes
+
+        if SimpleForm.input_class && input_html_classes.any?
+          input_html_classes << SimpleForm.input_class
+        end
+
         @input_html_options = html_options_for(:input, input_html_classes).tap do |o|
           o[:readonly]  = true if has_readonly?
           o[:disabled]  = true if has_disabled?
@@ -72,7 +83,7 @@ module SimpleForm
         end
       end
 
-      def input
+      def input(wrapper_options = nil)
         raise NotImplementedError
       end
 
@@ -85,7 +96,7 @@ module SimpleForm
       end
 
       def input_class
-        "#{lookup_model_names.join("_")}_#{reflection_or_attribute_name}"
+        "#{lookup_model_names.join('_')}_#{reflection_or_attribute_name}"
       end
 
       private
@@ -106,7 +117,7 @@ module SimpleForm
       end
 
       def decimal_or_float?
-        column.number? && column.type != :integer
+        column.type == :float || column.type == :decimal
       end
 
       def nested_boolean_style?
@@ -160,7 +171,7 @@ module SimpleForm
       #            email: 'E-mail.'
       #
       #  Take a look at our locale example file.
-      def translate(namespace, default='')
+      def translate_from_namespace(namespace, default = '')
         model_names = lookup_model_names.dup
         lookups     = []
 
@@ -175,7 +186,46 @@ module SimpleForm
         lookups << :"defaults.#{reflection_or_attribute_name}"
         lookups << default
 
-        I18n.t(lookups.shift, scope: :"simple_form.#{namespace}", default: lookups).presence
+        I18n.t(lookups.shift, scope: :"#{i18n_scope}.#{namespace}", default: lookups).presence
+      end
+
+      def merge_wrapper_options(options, wrapper_options)
+        if wrapper_options
+          wrapper_options = set_input_classes(wrapper_options)
+
+          wrapper_options.merge(options) do |key, oldval, newval|
+            case key.to_s
+            when "class"
+              Array(oldval) + Array(newval)
+            when "data", "aria"
+              oldval.merge(newval)
+            else
+              newval
+            end
+          end
+        else
+          options
+        end
+      end
+
+      def set_input_classes(wrapper_options)
+        wrapper_options = wrapper_options.dup
+        error_class     = wrapper_options.delete(:error_class)
+        valid_class     = wrapper_options.delete(:valid_class)
+
+        if error_class.present? && has_errors?
+          wrapper_options[:class] = "#{wrapper_options[:class]} #{error_class}"
+        end
+
+        if valid_class.present? && valid?
+          wrapper_options[:class] = "#{wrapper_options[:class]} #{valid_class}"
+        end
+
+        wrapper_options
+      end
+
+      def i18n_scope
+        SimpleForm.i18n_scope
       end
     end
   end
